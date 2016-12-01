@@ -1,34 +1,6 @@
 # Tantot
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/tantot`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-pack actions per model
-
-inner structure:
-{<model class>:
-  {<id>:
-    [
-      {
-        action: one of [:create, :update, :destroy],
-        changes: <array of ActiveModel::Dirty hashes>, one per update callback
-      }
-    ]
-  }
-}
-
-worker callback structure:
-[ {model: <model class>, id: <id>, action: <action>, changes: <changes> (if action is :update)}, ... ]
-
-interface:
-
-class BatchedCallbackListener
-
-  def
-
-end
-
-on exit of block:
-  start batch
+Trigger a Travis build.
 
 
 ## Installation
