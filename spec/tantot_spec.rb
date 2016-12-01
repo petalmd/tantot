@@ -5,11 +5,33 @@ describe Tantot do
     expect(Tantot::VERSION).not_to be nil
   end
 
+  describe '.derive_watcher' do
+    class TestWatcher
+      include Tantot::Watcher
+    end
+
+    class WrongWatcher
+    end
+
+    module Foo
+      class BarWatcher
+        include Tantot::Watcher
+      end
+    end
+
+    specify { expect { described_class.derive_watcher('foo') }.to raise_error(Tantot::UnderivableWatcher) }
+    specify { expect { described_class.derive_watcher(WrongWatcher) }.to raise_error(Tantot::UnderivableWatcher) }
+    specify { expect(described_class.derive_watcher(TestWatcher)).to eq(TestWatcher) }
+    specify { expect(described_class.derive_watcher(Foo::BarWatcher)).to eq(Foo::BarWatcher) }
+    specify { expect(described_class.derive_watcher('test')).to eq(TestWatcher) }
+    specify { expect(described_class.derive_watcher('foo/bar')).to eq(Foo::BarWatcher) }
+  end
+
   [true, false].each do |use_after_commit_callbacks|
     context "using after_commit hooks: #{use_after_commit_callbacks}" do
       before { Tantot.config.use_after_commit_callbacks = use_after_commit_callbacks }
 
-      let(:watcher) { double }
+      let(:watcher) { stub_const("TestWatcher", Class.new) { include Tantot::Watcher } }
       let(:watcher_instance) { double }
 
       before do
@@ -113,8 +135,8 @@ describe Tantot do
       end
 
       context "with multiple watchers" do
-        let(:watchA) { double }
-        let(:watchB) { double }
+        let(:watchA) { stub_const("TestWatcherA", Class.new) { include Tantot::Watcher } }
+        let(:watchB) { stub_const("TestWatcherB", Class.new) { include Tantot::Watcher } }
         let(:watchA_instance) { double }
         let(:watchB_instance) { double }
         before do
