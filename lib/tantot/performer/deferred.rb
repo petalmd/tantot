@@ -1,23 +1,16 @@
 module Tantot
-  class Strategy
-    class Sidekiq < Atomic
+  module Performer
+    class Deferred
       class Worker
         include ::Sidekiq::Worker
 
-        def perform(watcher, changes_per_model)
-          watcher.constantize.new.perform(Tantot::Strategy::Sidekiq.unmarshal(changes_per_model))
+        def perform(watcher, changes)
+          watcher.constantize.new.perform(Tantot::Performer::Deferred.unmarshal(changes))
         end
       end
 
-      def leave(specific_watcher = nil)
-        if specific_watcher
-          # called from `join`, execute atomic inline
-          super
-        else
-          @stash.each do |watcher, changes_per_model|
-            Tantot::Strategy::Sidekiq::Worker.perform_async(watcher.name, Tantot::Strategy::Sidekiq.marshal(changes_per_model))
-          end
-        end
+      def run(watcher, changes)
+        Tantot::Performer::Deferred::Worker.perform_async(watcher, Tantot::Performer::Deferred.marshal(changes))
       end
 
       def self.marshal(changes_per_model)

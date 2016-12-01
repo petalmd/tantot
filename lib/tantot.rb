@@ -5,8 +5,10 @@ require 'singleton'
 
 require 'tantot/errors'
 require 'tantot/config'
+require 'tantot/collector'
+require 'tantot/performer'
+require 'tantot/formatter'
 require 'tantot/observe'
-require 'tantot/strategy'
 require 'tantot/watcher'
 
 ActiveSupport.on_load(:active_record) do
@@ -18,25 +20,20 @@ module Tantot
 
     def derive_watcher(name)
       watcher =
-      if name.is_a?(Class)
-        name
-      else
-        class_name = "#{name.camelize}Watcher"
-        watcher = class_name.safe_constantize
-        raise Tantot::UnderivableWatcher, "Can not find watcher named `#{class_name}`" unless watcher
-        watcher
-      end
-      raise Tantot::UnderivableWatcher, "Watcher class is does not include Tantot::Watcher: #{watcher}" unless watcher.included_modules.include?(Tantot::Watcher)
+        if name.is_a?(Class)
+          name
+        else
+          class_name = "#{name.camelize}Watcher"
+          watcher = class_name.safe_constantize
+          raise Tantot::UnderivableWatcher, "Can not find watcher named `#{class_name}`" unless watcher
+          watcher
+        end
+      raise Tantot::UnderivableWatcher, "Watcher class does not include Tantot::Watcher: #{watcher}" unless watcher.included_modules.include?(Tantot::Watcher)
       watcher
     end
 
-    def strategy(name = nil, &block)
-      Thread.current[:tantot_strategy] ||= Tantot::Strategy.new
-      if name
-        Thread.current[:tantot_strategy].wrap(name, &block)
-      else
-        Thread.current[:tantot_strategy]
-      end
+    def collector
+      Thread.current[:tantot_collector] ||= Tantot::Collector.new
     end
 
     def config

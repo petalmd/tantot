@@ -1,8 +1,16 @@
 module Tantot
   module Watcher
-    include ActiveSupport::Concern
+    extend ActiveSupport::Concern
 
-    # Nothing here for now, but enforcing API use for future extensions
-    # ex.: `watcher_options` on a watcher
+    included do
+      class_attribute :watcher_options_hash
+    end
+
+    class_methods do
+      def watcher_options(opts = {})
+        self.watcher_options_hash ||= Tantot.config.default_watcher_options
+        self.watcher_options_hash = self.watcher_options_hash.merge(opts)
+      end
+    end
   end
 end

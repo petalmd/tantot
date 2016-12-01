@@ -31,31 +31,27 @@ describe Tantot do
     context "using after_commit hooks: #{use_after_commit_callbacks}" do
       before { Tantot.config.use_after_commit_callbacks = use_after_commit_callbacks }
 
-      let(:watcher) { stub_const("TestWatcher", Class.new) { include Tantot::Watcher } }
       let(:watcher_instance) { double }
 
       before do
-        allow(watcher).to receive(:new).and_return(watcher_instance)
-        allow(watcher).to receive(:included_modules).and_return([Tantot::Watcher])
+        stub_class("TestWatcher") { include Tantot::Watcher }
+        allow(TestWatcher).to receive(:new).and_return(watcher_instance)
       end
 
       context "watching an attribute" do
         before do
-          w = watcher
           stub_model(:city) do
-            watch w, :name
+            watch TestWatcher, :name
           end
         end
 
         it "doesn't call back when the attribute doesn't change" do
-          Tantot.strategy(:atomic) do
-            City.create
-            expect(watcher_instance).not_to receive(:perform)
-          end
+          City.create
+          expect(watcher_instance).not_to receive(:perform)
         end
 
         it "calls back when the attribute changes (on creation)" do
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city = City.create name: 'foo'
             expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
           end
@@ -65,7 +61,7 @@ describe Tantot do
           city = City.create!
           city.reload
           expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city.name = "foo"
             city.save
           end
@@ -75,13 +71,13 @@ describe Tantot do
           city = City.create!(name: 'foo')
           city.reload
           expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => ['foo']}}})
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city.destroy
           end
         end
 
         it "calls back once per model even when updated more than once" do
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city = City.create! name: 'foo'
             city.name = 'bar'
             city.save
@@ -92,10 +88,10 @@ describe Tantot do
         end
 
         it "allows to call a watcher mid-stream" do
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city = City.create name: 'foo'
             expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
-            Tantot.strategy.join(watcher)
+            Tantot.collector.sweep(TestWatcher)
             city.name = 'bar'
             city.save
             expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => ['foo', 'bar']}}})
@@ -105,12 +101,11 @@ describe Tantot do
 
       context "on multiple models" do
         before do
-          w = watcher
           stub_model(:city) do
-            watch w, :name, :country_id
+            watch TestWatcher, :name, :country_id
           end
           stub_model(:country) do
-            watch w, :country_code
+            watch TestWatcher, :country_code
           end
         end
 
@@ -120,7 +115,7 @@ describe Tantot do
           country.reload
           city.reload
           expect(watcher_instance).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city.name = "foo"
             city.save
             city.name = "bar"
@@ -135,24 +130,20 @@ describe Tantot do
       end
 
       context "with multiple watchers" do
-        let(:watchA) { stub_const("TestWatcherA", Class.new) { include Tantot::Watcher } }
-        let(:watchB) { stub_const("TestWatcherB", Class.new) { include Tantot::Watcher } }
         let(:watchA_instance) { double }
         let(:watchB_instance) { double }
         before do
-          allow(watchA).to receive(:new).and_return(watchA_instance)
-          allow(watchA).to receive(:included_modules).and_return([Tantot::Watcher])
-          allow(watchB).to receive(:new).and_return(watchB_instance)
-          allow(watchB).to receive(:included_modules).and_return([Tantot::Watcher])
-          wA = watchA
-          wB = watchB
+          stub_class("TestWatcherA") { include Tantot::Watcher }
+          stub_class("TestWatcherB") { include Tantot::Watcher }
+          allow(TestWatcherA).to receive(:new).and_return(watchA_instance)
+          allow(TestWatcherB).to receive(:new).and_return(watchB_instance)
           stub_model(:city) do
-            watch wA, :name, :country_id
-            watch wB, :rating
+            watch TestWatcherA, :name, :country_id
+            watch TestWatcherB, :rating
           end
           stub_model(:country) do
-            watch wA, :country_code
-            watch wB, :name, :rating
+            watch TestWatcherA, :country_code
+            watch TestWatcherB, :name, :rating
           end
         end
 
@@ -164,7 +155,7 @@ describe Tantot do
           expect(watchA_instance).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
           # WatchB receives the last value of rating since it has been destroyed
           expect(watchB_instance).to receive(:perform).once.with({City => {city.id => {"rating" => [12]}}})
-          Tantot.strategy(:atomic) do
+          Tantot.collector.run do
             city.name = "foo"
             city.save
             city.name = "bar"
