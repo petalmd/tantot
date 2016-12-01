@@ -5,27 +5,27 @@ module Tantot
         @stash = {}
       end
 
-      def perform(watch, model, id, mutations, options)
-        @stash[watch] ||= {}
-        @stash[watch][model] ||= {}
-        @stash[watch][model][id] ||= {}
+      def perform(watcher, model, id, mutations, options)
+        @stash[watcher] ||= {}
+        @stash[watcher][model] ||= {}
+        @stash[watcher][model][id] ||= {}
         mutations.each do |attr, changes|
-          @stash[watch][model][id][attr] ||= []
-          @stash[watch][model][id][attr] |= changes
+          @stash[watcher][model][id][attr] ||= []
+          @stash[watcher][model][id][attr] |= changes
         end
       end
 
-      def leave(specific_watch = nil)
-        @stash.select {|watch, _c| specific_watch.nil? || specific_watch == watch}.each do |watch, changes_per_model|
-          watch.perform(changes_per_model)
+      def leave(specific_watcher = nil)
+        @stash.select {|watcher, _c| specific_watcher.nil? || specific_watcher == watcher}.each do |watcher, changes_per_model|
+          watcher.perform(changes_per_model)
         end
       end
 
-      def clear(specific_watch = nil)
-        if specific_watch.nil?
+      def clear(specific_watcher = nil)
+        if specific_watcher.nil?
           @stash = {}
         else
-          @stash.delete(specific_watch)
+          @stash.delete(specific_watcher)
         end
       end
     end

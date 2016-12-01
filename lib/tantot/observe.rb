@@ -7,7 +7,7 @@ module Tantot
         end
       end
 
-      def update_proc(watch, attributes, options)
+      def update_proc(watcher, attributes, options)
         proc do
           watched_changes =
             if self.destroyed?
@@ -15,7 +15,7 @@ module Tantot
             else
               self._watch_changes.select {|key, _value| attributes.include?(key)}
             end
-          Tantot.strategy.current.perform(watch, self.class.name, self.id, watched_changes, options)
+          Tantot.strategy.current.perform(watcher, self.class, self.id, watched_changes, options)
         end
       end
     end
@@ -30,8 +30,8 @@ module Tantot
       end
 
       class_methods do
-        # watch watch, :attr, :attr, :attr, option: :value
-        def watch(watch, *args)
+        # watch watcher, :attr, :attr, :attr, option: :value
+        def watch(watcher, *args)
           options = args.extract_options!
           raise ArgumentError.new("Must specify at least one attribute to watch") if args.empty?
           attributes = args.collect(&:to_s)
@@ -40,10 +40,10 @@ module Tantot
           callback_options = {if: Observe.condition_proc(attributes)}
 
           if Tantot.config.use_after_commit_callbacks
-            after_commit(callback_options, &Observe.update_proc(watch, attributes, options))
+            after_commit(callback_options, &Observe.update_proc(watcher, attributes, options))
           else
-            after_save(callback_options, &Observe.update_proc(watch, attributes, options))
-            after_destroy(callback_options, &Observe.update_proc(watch, attributes, options))
+            after_save(callback_options, &Observe.update_proc(watcher, attributes, options))
+            after_destroy(callback_options, &Observe.update_proc(watcher, attributes, options))
           end
         end
       end

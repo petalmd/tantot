@@ -28,14 +28,14 @@ describe Tantot do
         it "calls back when the attribute changes (on creation)" do
           Tantot.strategy(:atomic) do
             city = City.create name: 'foo'
-            expect(watch).to receive(:perform).with({"City" => {city.id => {"name" => [nil, 'foo']}}})
+            expect(watch).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
           end
         end
 
         it "calls back on model update" do
           city = City.create!
           city.reload
-          expect(watch).to receive(:perform).with({"City" => {city.id => {"name" => [nil, 'foo']}}})
+          expect(watch).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
           Tantot.strategy(:atomic) do
             city.name = "foo"
             city.save
@@ -45,7 +45,7 @@ describe Tantot do
         it "calls back on model destroy" do
           city = City.create!(name: 'foo')
           city.reload
-          expect(watch).to receive(:perform).with({"City" => {city.id => {"name" => ['foo']}}})
+          expect(watch).to receive(:perform).with({City => {city.id => {"name" => ['foo']}}})
           Tantot.strategy(:atomic) do
             city.destroy
           end
@@ -54,12 +54,23 @@ describe Tantot do
         it "calls back once per model even when updated more than once" do
           city = City.create!
           city.reload
-          expect(watch).to receive(:perform).once.with({"City" => {city.id => {"name" => [nil, 'foo', 'bar']}}})
+          expect(watch).to receive(:perform).once.with({City => {city.id => {"name" => [nil, 'foo', 'bar']}}})
           Tantot.strategy(:atomic) do
             city.name = "foo"
             city.save
             city.name = "bar"
             city.save
+          end
+        end
+
+        it "allows to call a watcher mid-stream" do
+          Tantot.strategy(:atomic) do
+            city = City.create name: 'foo'
+            expect(watch).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+            Tantot.strategy.join(watch)
+            city.name = 'bar'
+            city.save
+            expect(watch).to receive(:perform).with({City => {city.id => {"name" => ['foo', 'bar']}}})
           end
         end
       end
@@ -81,7 +92,7 @@ describe Tantot do
           city = City.create!(name: "Quebec", country_id: country.id)
           country.reload
           city.reload
-          expect(watch).to receive(:perform).once.with({"City" => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, "Country" => {country.id => {"country_code" => ['CDN', 'US']}}})
+          expect(watch).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
           Tantot.strategy(:atomic) do
             city.name = "foo"
             city.save
@@ -117,9 +128,9 @@ describe Tantot do
           city = City.create!(name: "Quebec", country_id: country.id, rating: 12)
           country.reload
           city.reload
-          expect(watchA).to receive(:perform).once.with({"City" => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, "Country" => {country.id => {"country_code" => ['CDN', 'US']}}})
+          expect(watchA).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
           # WatchB receives the last value of rating since it has been destroyed
-          expect(watchB).to receive(:perform).once.with({"City" => {city.id => {"rating" => [12]}}})
+          expect(watchB).to receive(:perform).once.with({City => {city.id => {"rating" => [12]}}})
           Tantot.strategy(:atomic) do
             city.name = "foo"
             city.save
@@ -134,6 +145,7 @@ describe Tantot do
         end
 
       end
+
     end
   end
 end

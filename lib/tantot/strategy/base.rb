@@ -1,15 +1,15 @@
 module Tantot
   class Strategy
     class Base
-      def perform(watch, model, id, mutations, options)
+      def perform(watcher, model, id, mutations, options)
         raise NotImplementedError
       end
 
-      def leave(watch = nil)
+      def leave(watcher = nil)
         raise NotImplementedError
       end
 
-      def clear(watch = nil)
+      def clear(watcher = nil)
         raise NotImplementedError
       end
     end

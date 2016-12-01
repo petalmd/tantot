@@ -27,9 +27,9 @@ module Tantot
       @strategy = Tantot::Strategy::Bypass.new
     end
 
-    def run(watch)
-      @strategy.leave(watch)
-      @strategy.clear(watch)
+    def join(watcher)
+      @strategy.leave(watcher)
+      @strategy.clear(watcher)
     end
 
   private
@@ -37,6 +37,5 @@ module Tantot
     def resolve(name)
       "Tantot::Strategy::#{name.to_s.camelize}".safe_constantize or raise "Can't find strategy class `#{name}`"
     end
-
   end
 end
