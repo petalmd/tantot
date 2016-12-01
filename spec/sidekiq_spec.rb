@@ -12,12 +12,21 @@ if defined?(::Sidekiq)
     end
 
     before do
+      Sidekiq::Worker.clear_all
       stub_model(:city) do
         watch SidekiqWatcher, :name
       end
     end
 
     it "should call a sidekiq worker" do
+      Tantot.strategy(:sidekiq) do
+        City.create name: 'foo'
+      end
+      expect(Tantot::Strategy::Sidekiq::Worker.jobs.size).to eq(1)
+      expect(Tantot::Strategy::Sidekiq::Worker.jobs.first["args"]).to eq(["SidekiqWatcher", {"City" => {"1" => {"name" => [nil, 'foo']}}}])
+    end
+
+    it "should call the watcher" do
       ::Sidekiq::Testing.inline! do
         Tantot.strategy(:sidekiq) do
           city = City.create name: 'foo'
@@ -26,7 +35,7 @@ if defined?(::Sidekiq)
       end
     end
 
-    it "should skip sidekiq and process atomically when `join`ing, the resume using sidekiq" do
+    it "should skip sidekiq and process atomically when `join`ing, then resume using sidekiq" do
       Sidekiq::Testing.fake! do
         Tantot.strategy(:sidekiq) do
 
