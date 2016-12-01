@@ -5,7 +5,7 @@ module Tantot
         include ::Sidekiq::Worker
 
         def perform(watcher, changes_per_model)
-          watcher.constantize.perform(Tantot::Strategy::Sidekiq.unmarshal(changes_per_model))
+          watcher.constantize.new.perform(Tantot::Strategy::Sidekiq.unmarshal(changes_per_model))
         end
       end
 

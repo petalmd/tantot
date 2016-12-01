@@ -28,6 +28,7 @@ module Tantot
     end
 
     def join(watcher)
+      raise ArgumentError.new("`join` must be called with a watcher class including Tantot::Watcher") unless watcher.included_modules.include?(Tantot::Watcher)
       @strategy.leave(watcher)
       @strategy.clear(watcher)
     end

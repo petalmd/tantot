@@ -17,7 +17,7 @@ module Tantot
 
       def leave(specific_watcher = nil)
         @stash.select {|watcher, _c| specific_watcher.nil? || specific_watcher == watcher}.each do |watcher, changes_per_model|
-          watcher.perform(changes_per_model)
+          watcher.new.perform(changes_per_model)
         end
       end
 

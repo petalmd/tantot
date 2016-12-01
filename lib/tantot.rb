@@ -6,6 +6,7 @@ require 'singleton'
 require "tantot/config"
 require "tantot/observe"
 require "tantot/strategy"
+require "tantot/watcher"
 
 ActiveSupport.on_load(:active_record) do
   ActiveRecord::Base.send(:include, Tantot::Observe::ActiveRecordMethods)

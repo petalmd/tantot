@@ -32,6 +32,7 @@ module Tantot
       class_methods do
         # watch watcher, :attr, :attr, :attr, option: :value
         def watch(watcher, *args)
+          raise ArgumentError.new("`watcher` must include Tantot::Watcher") unless watcher.included_modules.include?(Tantot::Watcher)
           options = args.extract_options!
           raise ArgumentError.new("Must specify at least one attribute to watch") if args.empty?
           attributes = args.collect(&:to_s)
