@@ -5,6 +5,8 @@ if defined?(::Sidekiq)
 
   describe Tantot::Strategy::Sidekiq do
     class SidekiqWatcher
+      include Tantot::Watcher
+
       def perform(changes)
       end
     end
@@ -19,7 +21,7 @@ if defined?(::Sidekiq)
       ::Sidekiq::Testing.inline! do
         Tantot.strategy(:sidekiq) do
           city = City.create name: 'foo'
-          expect(SidekiqWatcher).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+          expect_any_instance_of(SidekiqWatcher).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
         end
       end
     end
