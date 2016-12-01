@@ -52,14 +52,13 @@ describe Tantot do
         end
 
         it "calls back once per model even when updated more than once" do
-          city = City.create!
-          city.reload
-          expect(watch).to receive(:perform).once.with({City => {city.id => {"name" => [nil, 'foo', 'bar']}}})
           Tantot.strategy(:atomic) do
-            city.name = "foo"
+            city = City.create! name: 'foo'
+            city.name = 'bar'
             city.save
-            city.name = "bar"
+            city.name = 'baz'
             city.save
+            expect(watch).to receive(:perform).once.with({City => {city.id => {"name" => [nil, 'foo', 'bar', 'baz']}}})
           end
         end
 
