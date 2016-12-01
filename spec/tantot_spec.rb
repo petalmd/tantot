@@ -143,9 +143,7 @@ describe Tantot do
             city.destroy
           end
         end
-
       end
-
     end
   end
 end

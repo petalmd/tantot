@@ -1,7 +1,8 @@
 # Tantot
 
-Trigger a Travis build.
+[![Build Status](https://travis-ci.org/petalmd/tantot.svg?branch=master)](https://travis-ci.org/petalmd/tantot)
 
+Centralize and delay changes to multiple ActiveRecord models to offload processing of complex calculations caused by model mutations.
 
 ## Installation
 
