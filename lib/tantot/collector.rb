@@ -1,7 +1,13 @@
 module Tantot
   class Collector
     def initialize
-      @stash = {}
+      @stash = Hash.new do |watcher_hash, watcher|
+        watcher_hash[watcher] = Hash.new do |model_hash, model|
+          model_hash[model] = Hash.new do |id_hash, id|
+            id_hash[id] = {}
+          end
+        end
+      end
     end
 
     def run(&block)
@@ -11,13 +17,10 @@ module Tantot
     end
 
     def push(watcher, model, mutations, options)
-      formatter = Tantot::Formatter.resolve(watcher.watcher_options[:formatter]).new
-      @stash[watcher] ||= {}
-      @stash[watcher][model.class] ||= {}
-      @stash[watcher][model.class][model.id] ||= {}
+      formatter = Tantot::Formatter.resolve(watcher.watcher_options[:format]).new
+      attribute_hash = @stash[watcher][model.class][model.id]
       mutations.each do |attr, changes|
-        @stash[watcher][model.class][model.id][attr] ||= formatter.new_value
-        @stash[watcher][model.class][model.id][attr] = formatter.run(model, changes, @stash[watcher][model.class][model.id][attr])
+        attribute_hash[attr] = formatter.push(attribute_hash[attr], model, changes)
       end
     end
 
@@ -34,7 +37,7 @@ module Tantot
       if options[:watcher]
         @stash.delete(options[:watcher])
       else
-        @stash = {}
+        @stash.clear
       end
     end
 

@@ -8,7 +8,7 @@ module Tantot
       @performer = :inline
       @use_after_commit_callbacks = true
       @default_watcher_options = {
-        formatter: :compact
+        format: :compact
       }
     end
   end

@@ -1,12 +1,8 @@
 module Tantot
   module Formatter
     class Detailed
-      def new_value
-        []
-      end
-
-      def run(model, changes, current_value)
-        current_value.push(changes)
+      def push(change_array, model, changes)
+        change_array.nil? ? [changes] : change_array.push(changes)
       end
     end
   end

@@ -103,6 +103,30 @@ describe Tantot do
         end
       end
 
+      context "detailed format" do
+        let(:watcher_instance) { double }
+        before do
+          stub_class("DetailedTestWatcher") do
+            include Tantot::Watcher
+
+            watcher_options format: :detailed
+          end
+          allow(DetailedTestWatcher).to receive(:new).and_return(watcher_instance)
+          stub_model(:city) do
+            watch 'detailed_test', :name
+          end
+        end
+
+        it "should output a detailed array of changes" do
+          Tantot.collector.run do
+            city = City.create! name: 'foo'
+            city.name = 'bar'
+            city.save
+            expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [[nil, 'foo'], ['foo', 'bar']]}}})
+          end
+        end
+      end
+
       context "on multiple models" do
         before do
           stub_model(:city) do
