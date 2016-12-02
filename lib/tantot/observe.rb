@@ -15,7 +15,7 @@ module Tantot
             else
               self._watch_changes.select {|key, _value| attributes.include?(key)}
             end
-          Tantot.collector.push(watcher, self.class, self.id, watched_changes, options)
+          Tantot.collector.push(watcher, self, watched_changes, options)
         end
       end
     end

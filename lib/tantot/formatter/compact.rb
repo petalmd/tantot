@@ -5,7 +5,7 @@ module Tantot
         []
       end
 
-      def run(changes, current_value)
+      def run(model, changes, current_value)
         current_value |= changes
       end
     end

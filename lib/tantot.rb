@@ -11,6 +11,8 @@ require 'tantot/formatter'
 require 'tantot/observe'
 require 'tantot/watcher'
 
+require 'tantot/railtie' if defined?(::Rails::Railtie)
+
 ActiveSupport.on_load(:active_record) do
   ActiveRecord::Base.send(:include, Tantot::Observe::ActiveRecordMethods)
 end
