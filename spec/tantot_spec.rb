@@ -60,6 +60,8 @@ describe Tantot do
         it "calls back on model update" do
           city = City.create!
           city.reload
+          Tantot.collector.sweep(performer: :bypass)
+
           expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
           Tantot.collector.run do
             city.name = "foo"
@@ -70,6 +72,8 @@ describe Tantot do
         it "calls back on model destroy" do
           city = City.create!(name: 'foo')
           city.reload
+          Tantot.collector.sweep(performer: :bypass)
+
           expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => ['foo']}}})
           Tantot.collector.run do
             city.destroy
@@ -91,7 +95,7 @@ describe Tantot do
           Tantot.collector.run do
             city = City.create name: 'foo'
             expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
-            Tantot.collector.sweep(TestWatcher)
+            Tantot.collector.sweep_now(TestWatcher)
             city.name = 'bar'
             city.save
             expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => ['foo', 'bar']}}})
@@ -114,6 +118,8 @@ describe Tantot do
           city = City.create!(name: "Quebec", country_id: country.id)
           country.reload
           city.reload
+          Tantot.collector.sweep(performer: :bypass)
+
           expect(watcher_instance).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
           Tantot.collector.run do
             city.name = "foo"
@@ -155,6 +161,8 @@ describe Tantot do
           expect(watchA_instance).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
           # WatchB receives the last value of rating since it has been destroyed
           expect(watchB_instance).to receive(:perform).once.with({City => {city.id => {"rating" => [12]}}})
+          Tantot.collector.sweep(performer: :bypass)
+
           Tantot.collector.run do
             city.name = "foo"
             city.save

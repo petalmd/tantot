@@ -3,9 +3,9 @@ require "spec_helper"
 if defined?(::Sidekiq)
   require 'sidekiq/testing'
 
-  describe Tantot::Performer::Deferred do
+  describe Tantot::Performer::Sidekiq do
     around do |example|
-      Tantot.config.performer = :deferred
+      Tantot.config.performer = :sidekiq
       example.run
       Tantot.config.performer = :inline
     end
@@ -28,8 +28,8 @@ if defined?(::Sidekiq)
       Tantot.collector.run do
         City.create name: 'foo'
       end
-      expect(Tantot::Performer::Deferred::Worker.jobs.size).to eq(1)
-      expect(Tantot::Performer::Deferred::Worker.jobs.first["args"]).to eq(["SidekiqWatcher", {"City" => {"1" => {"name" => [nil, 'foo']}}}])
+      expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
+      expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq(["SidekiqWatcher", {"City" => {"1" => {"name" => [nil, 'foo']}}}])
     end
 
     it "should call the watcher" do
@@ -47,15 +47,15 @@ if defined?(::Sidekiq)
           # Create a model, then sweep. It should have called perform wihtout triggering a sidekiq worker
           city = City.create name: 'foo'
           expect_any_instance_of(SidekiqWatcher).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
-          Tantot.collector.sweep(SidekiqWatcher)
-          expect(Tantot::Performer::Deferred::Worker.jobs.size).to eq(0)
+          Tantot.collector.sweep_now(SidekiqWatcher)
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(0)
 
           # Further modifications should trigger through sidekiq when exiting the strategy block
           city.name = 'bar'
           city.save
         end
-        expect(Tantot::Performer::Deferred::Worker.jobs.size).to eq(1)
-        expect(Tantot::Performer::Deferred::Worker.jobs.first["args"]).to eq(["SidekiqWatcher", {"City" => {"1" => {"name" => ['foo', 'bar']}}}])
+        expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
+        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq(["SidekiqWatcher", {"City" => {"1" => {"name" => ['foo', 'bar']}}}])
       end
     end
   end
