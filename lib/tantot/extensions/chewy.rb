@@ -3,36 +3,32 @@ module Tantot
     module Chewy
       extend ActiveSupport::Concern
 
+      included do
+        class_attribute :_tantot_chewy_callbacks
+      end
+
       class_methods do
-        # watch_index 'index#type', attribute, attribute, {method: [:self | :method | ignore and pass a block]} [block]
+        # watch_index 'index#type', attribute, attribute, {method: [:self | :method | ignore and pass a block | ignore and don't pass a block, equivalent of :self]} [block]
         def watch_index(type_name, *args, &block)
           options = args.extract_options!
           watch('tantot/extensions/chewy/chewy', *args)
-          Tantot::Extensions::Chewy::ChewyWatcher.register_watch(self, type_name, options, block)
+          Tantot::Extensions::Chewy.register_watch(self, type_name, options, block)
         end
+      end
+
+      def self.register_watch(model, type_name, options, block)
+        method = options.delete(:method)
+        model._tantot_chewy_callbacks ||= {}
+        model._tantot_chewy_callbacks[type_name] ||= []
+        model._tantot_chewy_callbacks[type_name].push({method: method, options: options, block: block})
       end
 
       class ChewyWatcher
         include Tantot::Watcher
 
-        class_attribute :callbacks
-
-        # Used in tests
-        def self.clear_callbacks
-          self.callbacks = {}
-        end
-
-        def self.register_watch(model, type_name, options, block)
-          method = options.delete(:method)
-          self.callbacks ||= {}
-          self.callbacks[model] ||= {}
-          self.callbacks[model][type_name] ||= []
-          self.callbacks[model][type_name].push({method: method, options: options, block: block})
-        end
-
         def perform(changes_by_model)
           changes_by_model.each do |model, changes_by_id|
-            model_watches = callbacks[model]
+            model_watches = model._tantot_chewy_callbacks
             model_watches.each do |type_name, watch_args_array|
               watch_args_array.each do |watch_args|
                 method = watch_args[:method]
@@ -51,7 +47,7 @@ module Tantot
                   end
                 # Find ids to update
                 backreference =
-                  if method && method.to_sym == :self
+                  if (method && method.to_sym == :self) || (!method && !block)
                     # Simply extract keys from changes
                     changes_by_id.keys
                   elsif method

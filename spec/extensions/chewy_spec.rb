@@ -4,10 +4,6 @@ module Chewy
 end
 
 describe Tantot::Extensions::Chewy do
-  before :each do
-    Tantot::Extensions::Chewy::ChewyWatcher.clear_callbacks
-  end
-
   it "should allow registering an index watch on self" do
     chewy_type = double
 
@@ -28,6 +24,21 @@ describe Tantot::Extensions::Chewy do
 
     stub_model(:city) do
       watch_index 'foo', method: :self
+    end
+
+    Tantot.collector.run do
+      city = City.create!
+
+      expect(Chewy).to receive(:derive_type).with('foo').and_return(chewy_type)
+      expect(chewy_type).to receive(:update_index).with([city.id], {})
+    end
+  end
+
+  it "should allow registering an index watch on self (implicit) (all attributes)" do
+    chewy_type = double
+
+    stub_model(:city) do
+      watch_index 'foo'
     end
 
     Tantot.collector.run do
