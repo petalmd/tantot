@@ -55,15 +55,17 @@ module Tantot
                     # call it on the class, and pass the change hash
                     model.send(method, changes_by_id)
                   else
-                    model.class_eval(&block)
+                    model.class_exec(changes_by_id, &block)
                   end
 
-                backreference.compact!
+                if backreference
+                  backreference.compact!
 
-                # Make sure there are any backreferences
-                if backreference.any?
-                  # Call update_index, will follow normal chewy strategy
-                  ::Chewy.derive_type(reference).update_index(backreference, options)
+                  # Make sure there are any backreferences
+                  if backreference.any?
+                    # Call update_index, will follow normal chewy strategy
+                    ::Chewy.derive_type(reference).update_index(backreference, options)
+                  end
                 end
               end
             end
