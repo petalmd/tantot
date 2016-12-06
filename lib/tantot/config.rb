@@ -2,7 +2,7 @@ module Tantot
   class Config
     include Singleton
 
-    attr_accessor :performer, :use_after_commit_callbacks, :default_watcher_options
+    attr_accessor :performer, :use_after_commit_callbacks, :default_watcher_options, :console_mode
 
     def initialize
       @performer = :inline
@@ -10,6 +10,7 @@ module Tantot
       @default_watcher_options = {
         format: :compact
       }
+      @console_mode = false
     end
   end
 end

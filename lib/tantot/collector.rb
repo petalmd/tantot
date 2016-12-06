@@ -22,6 +22,7 @@ module Tantot
       mutations.each do |attr, changes|
         attribute_hash[attr] = formatter.push(attribute_hash[attr], model, changes)
       end
+      sweep_now(watcher) if Tantot.config.console_mode
     end
 
     def sweep_now(watcher = nil)

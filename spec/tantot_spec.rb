@@ -46,8 +46,10 @@ describe Tantot do
         end
 
         it "doesn't call back when the attribute doesn't change" do
-          City.create
-          expect(watcher_instance).not_to receive(:perform)
+          Tantot.collector.run do
+            City.create
+            expect(watcher_instance).not_to receive(:perform)
+          end
         end
 
         it "calls back when the attribute changes (on creation)" do
@@ -196,6 +198,32 @@ describe Tantot do
             city.save
             country.country_code = 'US'
             country.save
+            city.destroy
+          end
+        end
+      end
+
+      context 'watching all attributes' do
+        before do
+          stub_model(:city) do
+            watch TestWatcher
+          end
+        end
+
+        it "should watch all changes" do
+          Tantot.collector.run do
+            city = City.create name: 'foo'
+            expect(watcher_instance).to receive(:perform).with({City => {city.id => {"id" => [nil, city.id], "name" => [nil, "foo"]}}})
+          end
+        end
+
+        it "should also watch on destroy, but when watching all attributes, change hash is empty" do
+          city = City.create!(name: 'foo')
+          city.reload
+          Tantot.collector.sweep(performer: :bypass)
+
+          expect(watcher_instance).to receive(:perform).with({City => {city.id => {}}})
+          Tantot.collector.run do
             city.destroy
           end
         end
