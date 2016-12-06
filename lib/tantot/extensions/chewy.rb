@@ -51,11 +51,24 @@ module Tantot
                     # Simply extract keys from changes
                     changes_by_id.keys
                   elsif method
-                    # We need to call `method`. Chewy calls it per-instance. We
-                    # call it on the class, and pass the change hash
-                    model.send(method, changes_by_id)
-                  else
-                    model.class_exec(changes_by_id, &block)
+                    # We need to call `method`.
+                    # Try to find it on the class. If so, call it once with all changes.
+                    # Else, try to find it in the instance, if so, call it once per instance.
+                    if model.respond_to?(method)
+                      model.send(method, changes_by_id)
+                    elsif model.instance_methods.include?(method)
+                      ids = []
+                      model.where(id: changes_by_id.keys).find_each do |instance|
+                        ids |= Array.wrap(instance.send(method, changes_by_id[instance.id]))
+                      end
+                      ids
+                    end
+                  elsif block
+                    ids = []
+                    model.where(id: changes_by_id.keys).find_each do |instance|
+                      ids |= Array.wrap(instance.instance_exec(changes_by_id[instance.id], &block))
+                    end
+                    ids
                   end
 
                 if backreference
