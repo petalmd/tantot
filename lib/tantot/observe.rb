@@ -1,14 +1,21 @@
+require 'cityhash'
+
 module Tantot
   module Observe
     module Helpers
-      def condition_proc(attributes)
+      def condition_proc(context)
         proc do
-          self.destroyed? || (self._watch_changes.keys & attributes).any?
+          attributes = context[:attributes]
+          options = context[:options]
+          has_changes = attributes.any? ? (self.destroyed? || (self._watch_changes.keys & attributes).any?) : true
+          custom_condition = options.key?(:if) ? self.instance_exec(&options[:if]) : true
+          has_changes && custom_condition
         end
       end
 
-      def update_proc(watcher, attributes, options)
+      def update_proc(context)
         proc do
+          attributes = context[:attributes]
           watched_changes =
             if attributes.any?
               if self.destroyed?
@@ -19,7 +26,8 @@ module Tantot
             else
               self._watch_changes
             end
-          Tantot.collector.push(watcher, self, watched_changes, options)
+
+          Tantot.collector.push(context, self, watched_changes)
         end
       end
     end
@@ -35,21 +43,41 @@ module Tantot
 
       class_methods do
         # watch watcher, :attr, :attr, :attr, option: :value
-        def watch(watcher_name, *args)
-          watcher = Tantot.derive_watcher(watcher_name)
+        # watch :attr, :attr, option: :value, &block
+        # watch watcher, option: :value
+        # watch option: :value, &block
+        def watch(*args, &block)
           options = args.extract_options!
+
+          watcher = args.first.is_a?(String) || args.first.is_a?(Class) ? Tantot.derive_watcher(args.shift) : nil
+          unless !!watcher ^ block_given?
+            raise ArgumentError.new("At least one, and only one of `watcher` or `block` can be passed")
+          end
+
           attributes = args.collect(&:to_s)
+
+          context = {
+            model: self,
+            attributes: attributes,
+            options: options
+          }
+
+          context[:watcher] = watcher if watcher
+          context[:block_id] = CityHash.hash64(block.source_location.collect(&:to_s).join) if block_given?
+
+          Tantot.collector.register_watch(context, block)
 
           callback_options = {}.tap do |opts|
             # Optimize callback usage on watched attributes only
-            opts[:if] = Observe.condition_proc(attributes) if args.any?
+            opts[:if] = Observe.condition_proc(context)
           end
+          update_proc = Observe.update_proc(context)
 
           if Tantot.config.use_after_commit_callbacks
-            after_commit(callback_options, &Observe.update_proc(watcher, attributes, options))
+            after_commit(callback_options, &update_proc)
           else
-            after_save(callback_options, &Observe.update_proc(watcher, attributes, options))
-            after_destroy(callback_options, &Observe.update_proc(watcher, attributes, options))
+            after_save(callback_options, &update_proc)
+            after_destroy(callback_options, &update_proc)
           end
         end
       end

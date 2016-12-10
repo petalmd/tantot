@@ -1,46 +1,63 @@
+require 'tantot/collector/base'
+require 'tantot/collector/watcher'
+require 'tantot/collector/block'
+
 module Tantot
-  class Collector
-    def initialize
-      @stash = Hash.new do |watcher_hash, watcher|
-        watcher_hash[watcher] = Hash.new do |model_hash, model|
-          model_hash[model] = Hash.new do |id_hash, id|
-            id_hash[id] = {}
-          end
+  module Collector
+    class Manager
+      def initialize
+        @collectors = {}
+      end
+
+      def register_watch(context, block)
+        resolve!(context).register_watch(context, block)
+      end
+
+      def run(&block)
+        yield
+      ensure
+        sweep
+      end
+
+      def push(context, instance, mutations)
+        collector = resolve!(context)
+        collector.push(context, instance, mutations)
+        sweep_now(context) if Tantot.config.console_mode
+      end
+
+      def sweep(context = {})
+        performer = Tantot::Performer.resolve(context[:performer] || Tantot.config.performer).new
+        if (collector = resolve(context))
+          collector.sweep(performer, context)
+        else
+          @collectors.values.each {|c| c.sweep(performer)}
         end
       end
-    end
 
-    def run(&block)
-      yield
-    ensure
-      sweep
-    end
-
-    def push(watcher, model, mutations, options)
-      formatter = Tantot::Formatter.resolve(watcher.watcher_options[:format]).new
-      attribute_hash = @stash[watcher][model.class][model.id]
-      mutations.each do |attr, changes|
-        attribute_hash[attr] = formatter.push(attribute_hash[attr], model, changes)
+      def marshal(context, changes)
+        collector = resolve!(context)
+        context, changes = collector.marshal(context, changes)
+        context[:collector_class] = collector.class
+        [context, changes]
       end
-      sweep_now(watcher) if Tantot.config.console_mode
-    end
 
-    def sweep_now(watcher = nil)
-      sweep(performer: :inline, watcher: Tantot.derive_watcher(watcher))
-    end
-
-    def sweep(options = {})
-      filtered_stash = options[:watcher] ? @stash.select {|watcher, _c| options[:watcher] == watcher} : @stash
-      filtered_stash.each do |watcher, changes_per_model|
-        performer = Tantot::Performer.resolve(options[:performer] || Tantot.config.performer).new
-        performer.run(watcher, changes_per_model)
+      def unmarshal(context, changes)
+        context.deep_symbolize_keys!
+        collector_class = context[:collector_class].constantize
+        collector = @collectors[collector_class] || @collectors[collector_class] = collector_class.new
+        collector.unmarshal(context, changes)
       end
-      if options[:watcher]
-        @stash.delete(options[:watcher])
-      else
-        @stash.clear
-      end
-    end
 
+      def resolve(context)
+        collector_class = Tantot::Collector::Base.descendants.find {|c| c.manages?(context)}
+        return nil unless collector_class
+        @collectors[collector_class] || @collectors[collector_class] = collector_class.new
+      end
+
+      def resolve!(context)
+        resolve(context) || (raise "No collector manages current context: #{context.inspect}")
+      end
+
+    end
   end
 end

@@ -4,13 +4,15 @@ module Tantot
       class Worker
         include ::Sidekiq::Worker
 
-        def perform(watcher, changes)
-          watcher.constantize.new.perform(Tantot::Performer.unmarshal(changes))
+        def perform(context, changes)
+          context, changes = Tantot.collector.unmarshal(context, changes)
+          Tantot.collector.resolve(context).perform(context, changes)
         end
       end
 
-      def run(watcher, changes)
-        Tantot::Performer::Sidekiq::Worker.perform_async(watcher, Tantot::Performer.marshal(changes))
+      def run(context, changes)
+        context, changes = Tantot.collector.marshal(context, changes)
+        Tantot::Performer::Sidekiq::Worker.perform_async(context, changes)
       end
     end
   end

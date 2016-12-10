@@ -30,21 +30,23 @@ module Tantot
           changes_by_model.each do |model, changes_by_id|
             model_watches = model._tantot_chewy_callbacks
             model_watches.each do |type_name, watch_args_array|
+              # Find type
+              reference =
+                if type_name.is_a?(Proc)
+                  if type_name.arity.zero?
+                    instance_exec(&type_name)
+                  else
+                    type_name.call(self)
+                  end
+                else
+                  type_name
+                end
+
               watch_args_array.each do |watch_args|
                 method = watch_args[:method]
                 options = watch_args[:options]
                 block = watch_args[:block]
-                # Find type
-                reference =
-                  if type_name.is_a?(Proc)
-                    if type_name.arity.zero?
-                      instance_exec(&type_name)
-                    else
-                      type_name.call(self)
-                    end
-                  else
-                    type_name
-                  end
+
                 # Find ids to update
                 backreference =
                   if (method && method.to_sym == :self) || (!method && !block)
@@ -80,6 +82,7 @@ module Tantot
                     ::Chewy.derive_type(reference).update_index(backreference, options)
                   end
                 end
+
               end
             end
           end

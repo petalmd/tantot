@@ -1,7 +1,7 @@
 module Tantot
   module Performer
     class Bypass
-      def run(changes, current_value)
+      def run(context, changes)
         # nop
       end
     end

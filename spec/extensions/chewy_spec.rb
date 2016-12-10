@@ -18,9 +18,9 @@ describe Tantot::Extensions::Chewy do
         self.class.yielded_changes ||= []
         self.class.yielded_changes.push(changes)
         # Intentionally return a scalar, it is the extension's job to wrap in an array
+        # The '+ 1' is to stray from the class_get_ids return value, avoid false positives
         self.id + 1
       end
-
 
       case backreference_opt
       when nil, :block
@@ -35,7 +35,7 @@ describe Tantot::Extensions::Chewy do
       stub_model(:city) do
         class_attribute :yielded_changes
 
-        if [:block, :block_instance].include?(backreference_opt)
+        if backreference_opt == :block
           watch_index(*watch_index_params, &block_callback)
         else
           watch_index(*watch_index_params)
@@ -102,6 +102,20 @@ describe Tantot::Extensions::Chewy do
 
       expect(Chewy).to receive(:derive_type).with('foo').and_return(chewy_type)
       expect(chewy_type).to receive(:update_index).with([city.id], {})
+    end
+  end
+
+  it "should allow returning nothing in a callback" do
+    stub_model(:city) do
+      watch_index('foo') { 1 if false }
+      watch_index('bar') { [] }
+      watch_index('baz') { nil }
+    end
+
+    Tantot.collector.run do
+      City.create!
+
+      expect(Chewy).not_to receive(:derive_type)
     end
   end
 end

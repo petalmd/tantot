@@ -5,11 +5,12 @@ require 'singleton'
 
 require 'tantot/errors'
 require 'tantot/config'
-require 'tantot/collector'
+require 'tantot/registry'
+require 'tantot/watcher'
 require 'tantot/performer'
 require 'tantot/formatter'
+require 'tantot/collector'
 require 'tantot/observe'
-require 'tantot/watcher'
 
 require 'tantot/extensions/chewy'
 
@@ -38,11 +39,15 @@ module Tantot
     end
 
     def collector
-      Thread.current[:tantot_collector] ||= Tantot::Collector.new
+      Thread.current[:tantot_collector] ||= Tantot::Collector::Manager.new
     end
 
     def config
       Tantot::Config.instance
+    end
+
+    def registry
+      Tantot::Registry.instance
     end
 
   end
