@@ -4,12 +4,11 @@ module Tantot
   module Observe
     module Helpers
       def condition_proc(context)
+        attributes = context[:attributes]
+        options = context[:options]
         proc do
-          attributes = context[:attributes]
-          options = context[:options]
           has_changes = attributes.any? ? (self.destroyed? || (self._watch_changes.keys & attributes).any?) : true
-          custom_condition = options.key?(:if) ? self.instance_exec(&options[:if]) : true
-          has_changes && custom_condition
+          has_changes && (!options.key?(:if) || self.instance_exec(&options[:if]))
         end
       end
 
@@ -67,10 +66,9 @@ module Tantot
 
           Tantot.collector.register_watch(context, block)
 
-          callback_options = {}.tap do |opts|
-            # Optimize callback usage on watched attributes only
-            opts[:if] = Observe.condition_proc(context)
-          end
+          callback_options = {
+            if: Observe.condition_proc(context)
+          }
           update_proc = Observe.update_proc(context)
 
           if Tantot.config.use_after_commit_callbacks

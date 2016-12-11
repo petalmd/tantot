@@ -268,13 +268,13 @@ describe Tantot do
     end
 
     context 'using a block' do
-      let(:value) { {changed: false} }
-      let(:changes) { {} }
+      let(:value) { {changes: 0} }
+      let(:changes) { [] }
       before do
         v = value
         c = changes
         stub_model(:city) do
-          watch {|changes| v[:changed] = true; c.merge!(changes)}
+          watch {|changes| v[:changes] += 1; c.push(changes)}
         end
       end
 
@@ -282,8 +282,16 @@ describe Tantot do
         Tantot.collector.run do
           City.create!
         end
-        expect(value[:changed]).to be_truthy
-        expect(changes).to eq({"id" => [nil, 1]})
+        expect(value[:changes]).to eq(1)
+        expect(changes).to eq([{"id" => [nil, 1]}])
+      end
+
+      it "call multiple times if multiple changes occur" do
+        Tantot.collector.run do
+          3.times { City.create! }
+        end
+        expect(value[:changes]).to eq(3)
+        expect(changes).to eq([{"id" => [nil, 1]}, {"id" => [nil, 2]}, {"id" => [nil, 3]}])
       end
     end
   end # describe '.watch'

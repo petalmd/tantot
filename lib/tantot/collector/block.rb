@@ -27,7 +27,9 @@ module Tantot
       end
 
       def sweep(performer, context = {})
-        @stash.each {|block_id, changes| performer.run({block_id: block_id}, changes)}
+        @stash.each do |block_id, changes|
+          performer.run({block_id: block_id}, changes)
+        end
         @stash.clear
       end
 
@@ -47,6 +49,33 @@ module Tantot
           change_hash[id.to_i] = changes
         end
         [context, changes_per_id]
+      end
+
+      def debug_block(block)
+        location, line = block.source_location
+        short_path = defined?(Rails) ? Pathname.new(location).relative_path_from(Rails.root).to_s : location
+        "block @ #{short_path}##{line}"
+      end
+
+      def debug_context(context)
+        block = Tantot.registry.watch_config[context[:block_id]][:block]
+        debug_block(block)
+      end
+
+      def debug_state(context)
+        if @stash.any?
+          @stash.collect do |block_id, changes_by_id|
+            watch_config = Tantot.registry.watch_config[block_id]
+            "#{watch_config[:context][:model].name}*#{changes_by_id.size} for #{debug_block(watch_config[:block])}"
+          end.join(" / ")
+        else
+          "<empty>"
+        end
+      end
+
+      def debug_perform(context, changes_by_id)
+        watch_config = Tantot.registry.watch_config[context[:block_id]]
+        "#{watch_config[:context][:model].name}*#{changes_by_id.size} for #{debug_block(watch_config[:block])}"
       end
 
     end

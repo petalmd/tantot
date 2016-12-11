@@ -6,7 +6,7 @@ module Tantot
 
         def perform(context, changes)
           context, changes = Tantot.collector.unmarshal(context, changes)
-          Tantot.collector.resolve(context).perform(context, changes)
+          Tantot.collector.perform(context, changes)
         end
       end
 

@@ -23,6 +23,7 @@ end
 
 module Tantot
   class << self
+    attr_writer :logger
 
     def derive_watcher(name)
       watcher =
@@ -48,6 +49,10 @@ module Tantot
 
     def registry
       Tantot::Registry.instance
+    end
+
+    def logger
+      @logger || Rails.logger
     end
 
   end

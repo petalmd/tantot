@@ -60,9 +60,7 @@ if defined?(::Sidekiq)
           expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{"watcher" => "SidekiqWatcher", "collector_class" => "Tantot::Collector::Watcher"}, {"City" => {"1" => {"name" => ['foo', 'bar']}}}])
         end
       end
-
     end
-
 
     describe Tantot::Collector::Block do
       let(:value) { {changed: false} }

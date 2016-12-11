@@ -21,17 +21,25 @@ module Tantot
 
       def push(context, instance, mutations)
         collector = resolve!(context)
+        Tantot.logger.debug { "[Tantot] [#{collector.class.name.demodulize}] Collecting #{mutations.size} mutation(s) on <#{instance.class.name}:#{instance.id}> for <#{collector.debug_context(context)}>" }
         collector.push(context, instance, mutations)
-        sweep_now(context) if Tantot.config.console_mode
+        sweep(context.merge(performer: :inline)) if Tantot.config.console_mode
       end
 
       def sweep(context = {})
         performer = Tantot::Performer.resolve(context[:performer] || Tantot.config.performer).new
-        if (collector = resolve(context))
+        specific_collector = resolve(context)
+        collectors = specific_collector ? [specific_collector] : @collectors.values
+        collectors.each do |collector|
+          Tantot.logger.debug { "[Tantot] [#{collector.class.name.demodulize}] [#{performer.class.name.demodulize}] Sweeping #{collector.debug_state(context)}" }
           collector.sweep(performer, context)
-        else
-          @collectors.values.each {|c| c.sweep(performer)}
         end
+      end
+
+      def perform(context, changes)
+        collector = resolve!(context)
+        Tantot.logger.debug { "[Tantot] [#{collector.class.name.demodulize}] Performing #{collector.debug_perform(context, changes)}" }
+        collector.perform(context, changes)
       end
 
       def marshal(context, changes)

@@ -32,7 +32,9 @@ module Tantot
       def sweep(performer, context = {})
         watcher = context[:watcher]
         filtered_stash = watcher ? @stash.select {|w, _c| w == watcher} : @stash
-        filtered_stash.each {|w, changes| performer.run({watcher: w}, changes)}
+        filtered_stash.each do |w, changes_by_model|
+          performer.run({watcher: w}, changes_by_model)
+        end
         if watcher
           @stash.delete(watcher)
         else
@@ -40,26 +42,49 @@ module Tantot
         end
       end
 
-      def perform(context, changes)
-        context[:watcher].new.perform(changes)
+      def perform(context, changes_by_model)
+        context[:watcher].new.perform(changes_by_model)
       end
 
-      def marshal(context, changes_per_model)
-        changes_per_model = changes_per_model.each.with_object({}) do |(model_class, changes), hash|
+      def marshal(context, changes_by_model)
+        changes_by_model = changes_by_model.each.with_object({}) do |(model_class, changes), hash|
           hash[model_class.name] = changes
         end
-        [context, changes_per_model]
+        [context, changes_by_model]
       end
 
-      def unmarshal(context, changes_per_model)
+      def unmarshal(context, changes_by_model)
         context[:watcher] = context[:watcher].constantize
-        changes_per_model = changes_per_model.each.with_object({}) do |(model_class_name, changes_by_id), model_hash|
+        changes_by_model = changes_by_model.each.with_object({}) do |(model_class_name, changes_by_id), model_hash|
           model_hash[model_class_name.constantize] = changes_by_id.each.with_object({}) do |(id, changes), change_hash|
             change_hash[id.to_i] = changes
           end
         end
-        [context, changes_per_model]
+        [context, changes_by_model]
       end
+
+      def debug_context(context)
+        context[:watcher].name.demodulize
+      end
+
+      def debug_state(context)
+        if @stash.any?
+          @stash.collect do |watcher, changes_by_model|
+            "#{watcher.name}[#{changes_by_model.collect do |model, changes_by_id|
+              "#{model.name}*#{changes_by_id.size}"
+            end.join("&")}]"
+          end.flatten.join(" / ")
+        else
+          "<empty>"
+        end
+      end
+
+      def debug_perform(context, changes_by_model)
+        "#{context[:watcher].name}[#{changes_by_model.collect do |model, changes_by_id|
+          "#{model.name}*#{changes_by_id.size}"
+        end.join("&")}]"
+      end
+
     end
   end
 end

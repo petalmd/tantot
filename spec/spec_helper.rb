@@ -5,6 +5,8 @@ Bundler.require
 require 'active_record'
 require 'database_cleaner'
 
+Tantot.logger = Logger.new(STDOUT)
+
 def stub_class(name, superclass = nil, &block)
   stub_const(name.to_s.camelize, Class.new(superclass || Object, &block))
 end

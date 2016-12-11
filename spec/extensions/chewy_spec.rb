@@ -60,6 +60,7 @@ describe Tantot::Extensions::Chewy do
         city2 = City.create!
 
         # Stub the integration point between us and Chewy
+        expect(Chewy).to receive(:strategy).with(:atomic).and_yield
         expect(Chewy).to receive(:derive_type).with('foo').and_return(chewy_type)
 
         # Depending on backreference
@@ -100,6 +101,7 @@ describe Tantot::Extensions::Chewy do
     Tantot.collector.run do
       city.destroy
 
+      expect(Chewy).to receive(:strategy).with(:atomic).and_yield
       expect(Chewy).to receive(:derive_type).with('foo').and_return(chewy_type)
       expect(chewy_type).to receive(:update_index).with([city.id], {})
     end
