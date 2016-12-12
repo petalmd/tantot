@@ -23,7 +23,7 @@ module Tantot
       end
 
       def attributes
-        @changes_by_id.values.collect(&:keys).flatten.uniq
+        @changes_by_id.values.collect(&:keys).flatten.uniq.collect(&:to_sym)
       end
     end
 
@@ -35,6 +35,7 @@ module Tantot
       end
 
       delegate :==, :keys, :each, :count, :size, to: :changes_by_model
+      alias_method :models, :keys
 
       def ==(other)
         other.changes_by_model == @changes_by_model
