@@ -80,7 +80,7 @@ module Tantot
                   if backreference.any?
                     # Call update_index, will follow normal chewy strategy
                     ::Chewy.strategy :atomic do
-                      Tantot.logger.debug "[Tantot] [Chewy] update_index #{reference}: #{backreference.count} objects"
+                      Tantot.logger.debug "[Tantot] [Chewy] [update_index] #{reference}: #{backreference.count} objects"
                       ::Chewy.derive_type(reference).update_index(backreference, options)
                     end
                   end

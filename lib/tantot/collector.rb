@@ -21,7 +21,11 @@ module Tantot
 
       def push(context, instance, mutations)
         collector = resolve!(context)
-        Tantot.logger.debug { "[Tantot] [#{collector.class.name.demodulize}] Collecting #{mutations.size} mutation(s) on <#{instance.class.name}:#{instance.id}> for <#{collector.debug_context(context)}>" }
+        Tantot.logger.debug do
+          mutate =
+            mutations.size.zero? ? 'destroy' : "#{mutations.size} mutations(s)"
+          "[Tantot] [Collecting] [#{collector.class.name.demodulize}] #{mutate} on <#{instance.class.name}:#{instance.id}> for <#{collector.debug_context(context)}>"
+        end
         collector.push(context, instance, mutations)
         sweep(context.merge(performer: :inline)) if Tantot.config.console_mode
       end
@@ -31,14 +35,14 @@ module Tantot
         specific_collector = resolve(context)
         collectors = specific_collector ? [specific_collector] : @collectors.values
         collectors.each do |collector|
-          Tantot.logger.debug { "[Tantot] [#{collector.class.name.demodulize}] [#{performer.class.name.demodulize}] Sweeping #{collector.debug_state(context)}" }
+          Tantot.logger.debug { "[Tantot] [Sweeping] [#{collector.class.name.demodulize}] [#{performer.class.name.demodulize}] #{collector.debug_state(context)}" }
           collector.sweep(performer, context)
         end
       end
 
       def perform(context, changes)
         collector = resolve!(context)
-        Tantot.logger.debug { "[Tantot] [#{collector.class.name.demodulize}] Performing #{collector.debug_perform(context, changes)}" }
+        Tantot.logger.debug { "[Tantot] [Performing] [#{collector.class.name.demodulize}] #{collector.debug_perform(context, changes)}" }
         collector.perform(context, changes)
       end
 
