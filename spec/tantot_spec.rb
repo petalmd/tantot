@@ -32,7 +32,6 @@ describe Tantot do
     let(:watcher_instance) { double }
 
     before do
-      Tantot.registry.clear
       stub_class("TestWatcher") { include Tantot::Watcher }
       allow(TestWatcher).to receive(:new).and_return(watcher_instance)
     end
