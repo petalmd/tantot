@@ -2,13 +2,15 @@ module Tantot
   module Changes
 
     class ById
+      include Enumerable
+
       attr_reader :changes_by_id
 
       def initialize(changes_by_id)
         @changes_by_id = changes_by_id
       end
 
-      delegate :[], :keys, :each, :count, :size, to: :change_by_id
+      delegate :[], :keys, :each, :count, :size, to: :changes_by_id
 
       def ==(other)
         other.changes_by_id == @changes_by_id
@@ -28,13 +30,15 @@ module Tantot
     end
 
     class ByModel
+      include Enumerable
+
       attr_reader :changes_by_model
 
       def initialize(changes_by_model)
         @changes_by_model = changes_by_model
       end
 
-      delegate :==, :keys, :each, :count, :size, to: :changes_by_model
+      delegate :==, :keys, :count, :size, to: :changes_by_model
       alias_method :models, :keys
 
       def ==(other)
@@ -43,6 +47,12 @@ module Tantot
 
       def [](model)
         for_model(model)
+      end
+
+      def each(&block)
+        @changes_by_model.each do |model, changes|
+          block.call(model, Tantot::Changes::ById.new(changes))
+        end
       end
 
       def for_model(model)

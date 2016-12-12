@@ -21,6 +21,10 @@ describe Tantot::Changes do
     it "should correctly implement ==" do
       expect(subject).to eq(described_class.new(raw_changes))
     end
+
+    it "should implement Enumerable" do
+      expect(subject.collect {|id, changes| [id, changes]}).to eq(raw_changes.to_a)
+    end
   end
 
   describe Tantot::Changes::ByModel do
@@ -39,6 +43,13 @@ describe Tantot::Changes do
 
     it "should implement []" do
       expect(subject[City]).to eq(Tantot::Changes::ById.new(city_changes))
+    end
+
+    it "should implement Enumerable" do
+      expect(subject.collect {|model, changes| [model, changes]}).to eq([
+        [City, Tantot::Changes::ById.new(city_changes)],
+        [Country, Tantot::Changes::ById.new(country_changes)]
+      ])
     end
   end
 

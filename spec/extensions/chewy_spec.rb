@@ -65,7 +65,7 @@ describe Tantot::Extensions::Chewy do
 
       # Make sure the callbacks received the changes
       if [:class_method, :block].include?(backreference_opt)
-        expect(City.yielded_changes).to eq({city1.id => {"id" => [nil, city1.id]}, city2.id => {"id" => [nil, city2.id]}})
+        expect(City.yielded_changes).to eq(Tantot::Changes::ById.new({city1.id => {"id" => [nil, city1.id]}, city2.id => {"id" => [nil, city2.id]}}))
       end
 
     end
