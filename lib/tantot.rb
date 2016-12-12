@@ -1,11 +1,13 @@
 require 'tantot/version'
 
 require 'active_support'
+require 'active_support/core_ext'
 require 'singleton'
 
 require 'tantot/errors'
 require 'tantot/config'
 require 'tantot/registry'
+require 'tantot/changes'
 require 'tantot/watcher'
 require 'tantot/performer'
 require 'tantot/formatter'
@@ -13,6 +15,7 @@ require 'tantot/collector'
 require 'tantot/observe'
 
 require 'tantot/extensions/chewy'
+require 'tantot/extensions/grape/middleware'
 
 require 'tantot/railtie' if defined?(::Rails::Railtie)
 

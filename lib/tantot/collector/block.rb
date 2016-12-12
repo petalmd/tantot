@@ -35,20 +35,18 @@ module Tantot
 
       def perform(context, changes_by_id)
         watch_config = Tantot.registry.watch_config[context[:block_id]]
-        watch_config[:context][:model].where(id: changes_by_id.keys).find_each do |instance|
-          instance.instance_exec(changes_by_id[instance.id], &watch_config[:block])
-        end
+        watch_config[:context][:model].instance_exec(Tantot::Changes::ById.new(changes_by_id), &watch_config[:block])
       end
 
-      def marshal(context, changes_per_id)
-        [context, changes_per_id]
+      def marshal(context, changes_by_id)
+        [context, changes_by_id]
       end
 
-      def unmarshal(context, changes_per_id)
-        changes_per_id = changes_per_id.each.with_object({}) do |(id, changes), change_hash|
+      def unmarshal(context, changes_by_id)
+        changes_by_id = changes_by_id.each.with_object({}) do |(id, changes), change_hash|
           change_hash[id.to_i] = changes
         end
-        [context, changes_per_id]
+        [context, changes_by_id]
       end
 
       def debug_block(block)
@@ -63,14 +61,11 @@ module Tantot
       end
 
       def debug_state(context)
-        if @stash.any?
-          @stash.collect do |block_id, changes_by_id|
-            watch_config = Tantot.registry.watch_config[block_id]
-            "#{watch_config[:context][:model].name}*#{changes_by_id.size} for #{debug_block(watch_config[:block])}"
-          end.join(" / ")
-        else
-          "<empty>"
-        end
+        return false if @stash.empty?
+        @stash.collect do |block_id, changes_by_id|
+          watch_config = Tantot.registry.watch_config[block_id]
+          "#{watch_config[:context][:model].name}*#{changes_by_id.size} for #{debug_block(watch_config[:block])}"
+        end.join(" / ")
       end
 
       def debug_perform(context, changes_by_id)

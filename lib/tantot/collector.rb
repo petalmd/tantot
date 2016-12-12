@@ -22,8 +22,7 @@ module Tantot
       def push(context, instance, mutations)
         collector = resolve!(context)
         Tantot.logger.debug do
-          mutate =
-            mutations.size.zero? ? 'destroy' : "#{mutations.size} mutations(s)"
+          mutate = mutations.size.zero? ? 'destroy' : "#{mutations.size} mutations(s)"
           "[Tantot] [Collecting] [#{collector.class.name.demodulize}] #{mutate} on <#{instance.class.name}:#{instance.id}> for <#{collector.debug_context(context)}>"
         end
         collector.push(context, instance, mutations)
@@ -35,7 +34,9 @@ module Tantot
         specific_collector = resolve(context)
         collectors = specific_collector ? [specific_collector] : @collectors.values
         collectors.each do |collector|
-          Tantot.logger.debug { "[Tantot] [Sweeping] [#{collector.class.name.demodulize}] [#{performer.class.name.demodulize}] #{collector.debug_state(context)}" }
+          if Tantot.logger.debug? && (debug_state = collector.debug_state(context))
+            Tantot.logger.debug { "[Tantot] [Sweeping] [#{collector.class.name.demodulize}] [#{performer.class.name.demodulize}] #{debug_state}" }
+          end
           collector.sweep(performer, context)
         end
       end

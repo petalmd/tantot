@@ -43,7 +43,7 @@ module Tantot
       end
 
       def perform(context, changes_by_model)
-        context[:watcher].new.perform(changes_by_model)
+        context[:watcher].new.perform(Tantot::Changes::ByModel.new(changes_by_model))
       end
 
       def marshal(context, changes_by_model)
@@ -68,15 +68,12 @@ module Tantot
       end
 
       def debug_state(context)
-        if @stash.any?
-          @stash.collect do |watcher, changes_by_model|
-            "#{watcher.name}[#{changes_by_model.collect do |model, changes_by_id|
-              "#{model.name}*#{changes_by_id.size}"
-            end.join("&")}]"
-          end.flatten.join(" / ")
-        else
-          "<empty>"
-        end
+        return false if @stash.empty?
+        @stash.collect do |watcher, changes_by_model|
+          "#{watcher.name}[#{changes_by_model.collect do |model, changes_by_id|
+            "#{model.name}*#{changes_by_id.size}"
+          end.join("&")}]"
+        end.flatten.join(" / ")
       end
 
       def debug_perform(context, changes_by_model)

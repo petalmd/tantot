@@ -32,6 +32,7 @@ describe Tantot do
     let(:watcher_instance) { double }
 
     before do
+      Tantot.registry.clear
       stub_class("TestWatcher") { include Tantot::Watcher }
       allow(TestWatcher).to receive(:new).and_return(watcher_instance)
     end
@@ -57,7 +58,7 @@ describe Tantot do
           it "calls back when the attribute changes (on creation)" do
             Tantot.collector.run do
               city = City.create name: 'foo'
-              expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+              expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
             end
           end
 
@@ -66,7 +67,7 @@ describe Tantot do
             city.reload
             Tantot.collector.sweep(performer: :bypass)
 
-            expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+            expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
             Tantot.collector.run do
               city.name = "foo"
               city.save
@@ -78,7 +79,7 @@ describe Tantot do
             city.reload
             Tantot.collector.sweep(performer: :bypass)
 
-            expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => ['foo']}}})
+            expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => ['foo']}}}))
             Tantot.collector.run do
               city.destroy
             end
@@ -91,18 +92,18 @@ describe Tantot do
               city.save
               city.name = 'baz'
               city.save
-              expect(watcher_instance).to receive(:perform).once.with({City => {city.id => {"name" => [nil, 'foo', 'bar', 'baz']}}})
+              expect(watcher_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo', 'bar', 'baz']}}}))
             end
           end
 
           it "allows to call a watcher mid-stream" do
             Tantot.collector.run do
               city = City.create name: 'foo'
-              expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+              expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
               Tantot.collector.sweep(performer: :inline, watcher: TestWatcher)
               city.name = 'bar'
               city.save
-              expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => ['foo', 'bar']}}})
+              expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => ['foo', 'bar']}}}))
             end
           end
         end
@@ -128,7 +129,7 @@ describe Tantot do
           city = City.create! name: 'foo'
           city.name = 'bar'
           city.save
-          expect(watcher_instance).to receive(:perform).with({City => {city.id => {"name" => [[nil, 'foo'], ['foo', 'bar']]}}})
+          expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [[nil, 'foo'], ['foo', 'bar']]}}}))
         end
       end
     end
@@ -150,7 +151,7 @@ describe Tantot do
         city.reload
         Tantot.collector.sweep(performer: :bypass)
 
-        expect(watcher_instance).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
+        expect(watcher_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}}))
         Tantot.collector.run do
           city.name = "foo"
           city.save
@@ -188,9 +189,9 @@ describe Tantot do
         city = City.create!(name: "Quebec", country_id: country.id, rating: 12)
         country.reload
         city.reload
-        expect(watchA_instance).to receive(:perform).once.with({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}})
+        expect(watchA_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => ['Quebec', 'foo', 'bar'], "country_id" => [country.id, nil]}}, Country => {country.id => {"country_code" => ['CDN', 'US']}}}))
         # WatchB receives the last value of rating since it has been destroyed
-        expect(watchB_instance).to receive(:perform).once.with({City => {city.id => {"rating" => [12]}}})
+        expect(watchB_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {"rating" => [12]}}}))
         Tantot.collector.sweep(performer: :bypass)
 
         Tantot.collector.run do
@@ -217,7 +218,7 @@ describe Tantot do
       it "should watch all changes" do
         Tantot.collector.run do
           city = City.create name: 'foo'
-          expect(watcher_instance).to receive(:perform).with({City => {city.id => {"id" => [nil, city.id], "name" => [nil, "foo"]}}})
+          expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"id" => [nil, city.id], "name" => [nil, "foo"]}}}))
         end
       end
 
@@ -226,7 +227,7 @@ describe Tantot do
         city.reload
         Tantot.collector.sweep(performer: :bypass)
 
-        expect(watcher_instance).to receive(:perform).with({City => {city.id => {}}})
+        expect(watcher_instance).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {}}}))
         Tantot.collector.run do
           city.destroy
         end
@@ -269,29 +270,30 @@ describe Tantot do
 
     context 'using a block' do
       let(:value) { {changes: 0} }
-      let(:changes) { [] }
+      let(:changes) { {obj: nil} }
       before do
         v = value
         c = changes
         stub_model(:city) do
-          watch {|changes| v[:changes] += 1; c.push(changes)}
+          watch {|changes| v[:changes] += 1; c[:obj] = changes}
         end
       end
 
       it "should call the block" do
+        city = nil
         Tantot.collector.run do
-          City.create!
+          city = City.create!
         end
         expect(value[:changes]).to eq(1)
-        expect(changes).to eq([{"id" => [nil, 1]}])
+        expect(changes[:obj]).to eq(Tantot::Changes::ById.new({city.id => {"id" => [nil, 1]}}))
       end
 
-      it "call multiple times if multiple changes occur" do
+      it "call a single time if multiple changes occur" do
         Tantot.collector.run do
           3.times { City.create! }
         end
-        expect(value[:changes]).to eq(3)
-        expect(changes).to eq([{"id" => [nil, 1]}, {"id" => [nil, 2]}, {"id" => [nil, 3]}])
+        expect(value[:changes]).to eq(1)
+        expect(changes[:obj]).to eq(Tantot::Changes::ById.new({1=>{"id"=>[nil, 1]}, 2=>{"id"=>[nil, 2]}, 3=>{"id"=>[nil, 3]}}))
       end
     end
   end # describe '.watch'

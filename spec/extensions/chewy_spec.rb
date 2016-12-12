@@ -7,7 +7,7 @@ describe Tantot::Extensions::Chewy do
     stub_const("Chewy", {})
   end
 
-  [nil, :self, :class_method, :block, :instance_method].product([:some, :all]).each do |backreference_opt, attribute_opt|
+  [nil, :self, :class_method, :block].product([:some, :all]).each do |backreference_opt, attribute_opt|
     it "should update indexes using backreference: #{backreference_opt.inspect}, attributes: #{attribute_opt}" do
       chewy_type = double
 
@@ -15,11 +15,8 @@ describe Tantot::Extensions::Chewy do
       watch_index_params << :id if attribute_opt == :some
 
       block_callback = proc do |changes|
-        self.class.yielded_changes ||= []
-        self.class.yielded_changes.push(changes)
-        # Intentionally return a scalar, it is the extension's job to wrap in an array
-        # The '+ 1' is to stray from the class_get_ids return value, avoid false positives
-        self.id + 1
+        self.yielded_changes = changes
+        [1, 2, 3]
       end
 
       case backreference_opt
@@ -28,8 +25,6 @@ describe Tantot::Extensions::Chewy do
         watch_index_params << {method: :self}
       when :class_method
         watch_index_params << {method: :class_get_ids}
-      when :instance_method
-        watch_index_params << {method: :instance_get_ids}
       end
 
       stub_model(:city) do
@@ -44,12 +39,6 @@ describe Tantot::Extensions::Chewy do
         def self.class_get_ids(changes)
           self.yielded_changes = changes
           [1, 2, 3]
-        end
-
-        def instance_get_ids(changes)
-          self.class.yielded_changes ||= []
-          self.class.yielded_changes.push(changes)
-          [self.id + 1]
         end
       end
 
@@ -68,21 +57,15 @@ describe Tantot::Extensions::Chewy do
         when nil, :self
           # Implicit and self reference will update with the created model id
           expect(chewy_type).to receive(:update_index).with([city1.id, city2.id], {})
-        when :class_method
+        when :class_method, :block
           # Validate that the returned ids are updated
           expect(chewy_type).to receive(:update_index).with([1, 2, 3], {})
-        when :instance_method, :block
-          # Validate that the returned ids are updated (we increment to differ from the self reference)
-          expect(chewy_type).to receive(:update_index).with([city1.id + 1, city2.id + 1], {})
         end
       end
 
       # Make sure the callbacks received the changes
-      case backreference_opt
-      when :class_method
+      if [:class_method, :block].include?(backreference_opt)
         expect(City.yielded_changes).to eq({city1.id => {"id" => [nil, city1.id]}, city2.id => {"id" => [nil, city2.id]}})
-      when :block, :instance_method
-        expect(City.yielded_changes).to eq([{"id" => [nil, city1.id]}, {"id" => [nil, city2.id]}])
       end
 
     end
@@ -92,7 +75,28 @@ describe Tantot::Extensions::Chewy do
     chewy_type = double
 
     stub_model(:city) do
-      watch_index 'foo', method: :self
+      watch_index 'foo'
+    end
+
+    city = City.create!
+    Tantot.collector.sweep(performer: :bypass)
+
+    Tantot.collector.run do
+      city.destroy
+
+      expect(Chewy).to receive(:strategy).with(:atomic).and_yield
+      expect(Chewy).to receive(:derive_type).with('foo').and_return(chewy_type)
+      expect(chewy_type).to receive(:update_index).with([city.id], {})
+    end
+  end
+
+  it "should allow registering an index watch on self (all attributes, destroy, block)" do
+    chewy_type = double
+
+    stub_model(:city) do
+      watch_index 'foo' do |changes|
+        changes.keys
+      end
     end
 
     city = City.create!

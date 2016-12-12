@@ -16,6 +16,7 @@ module Tantot
     end
 
     initializer 'tantot.request_strategy' do |app|
+      Tantot.logger.debug { "[Tantot] Installing Rails middleware" }
       app.config.middleware.insert_after(Rails::Rack::Logger, RequestStrategy)
     end
   end

@@ -38,7 +38,7 @@ if defined?(::Sidekiq)
         ::Sidekiq::Testing.inline! do
           Tantot.collector.run do
             city = City.create name: 'foo'
-            expect_any_instance_of(SidekiqWatcher).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+            expect_any_instance_of(SidekiqWatcher).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
           end
         end
       end
@@ -48,7 +48,7 @@ if defined?(::Sidekiq)
           Tantot.collector.run do
             # Create a model, then sweep. It should have called perform wihtout triggering a sidekiq worker
             city = City.create name: 'foo'
-            expect_any_instance_of(SidekiqWatcher).to receive(:perform).with({City => {city.id => {"name" => [nil, 'foo']}}})
+            expect_any_instance_of(SidekiqWatcher).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
             Tantot.collector.sweep(performer: :inline, watcher: SidekiqWatcher)
             expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(0)
 
@@ -64,14 +64,14 @@ if defined?(::Sidekiq)
 
     describe Tantot::Collector::Block do
       let(:value) { {changed: false} }
-      let(:changes) { {} }
+      let(:changes) { {obj: nil} }
 
       before do
         Sidekiq::Worker.clear_all
         v = value
         c = changes
         stub_model(:city) do
-          watch(:name) {|changes| v[:changed] = true; c.merge!(changes)}
+          watch(:name) {|changes| v[:changed] = true; c[:obj] = changes}
         end
       end
 
@@ -86,11 +86,12 @@ if defined?(::Sidekiq)
 
       it "should call the watcher" do
         ::Sidekiq::Testing.inline! do
+          city = nil
           Tantot.collector.run do
-            City.create name: 'foo'
+            city = City.create name: 'foo'
           end
           expect(value[:changed]).to be_truthy
-          expect(changes).to eq({"name" => [nil, 'foo']})
+          expect(changes[:obj]).to eq(Tantot::Changes::ById.new({city.id => {"name" => [nil, 'foo']}}))
         end
       end
     end

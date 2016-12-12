@@ -55,22 +55,14 @@ module Tantot
                   elsif method
                     # We need to call `method`.
                     # Try to find it on the class. If so, call it once with all changes.
-                    # Else, try to find it in the instance, if so, call it once per instance.
-                    if model.respond_to?(method)
-                      model.send(method, changes_by_id)
-                    elsif model.instance_methods.include?(method)
-                      ids = []
-                      model.where(id: changes_by_id.keys).find_each do |instance|
-                        ids |= Array.wrap(instance.send(method, changes_by_id[instance.id]))
-                      end
-                      ids
-                    end
+                    # There is no API to call per-instance since objects can be already destroyed
+                    # when using the sidekiq performer
+                    model.send(method, changes_by_id)
                   elsif block
-                    ids = []
-                    model.where(id: changes_by_id.keys).find_each do |instance|
-                      ids |= Array.wrap(instance.instance_exec(changes_by_id[instance.id], &block))
-                    end
-                    ids
+                    # Since we can be post-destruction of the model, we can't load models here
+                    # Thus, the signature of the block callback is |changes| which are all
+                    # the changes to all the models
+                    model.instance_exec(changes_by_id, &block)
                   end
 
                 if backreference
@@ -79,8 +71,8 @@ module Tantot
                   # Make sure there are any backreferences
                   if backreference.any?
                     # Call update_index, will follow normal chewy strategy
-                    ::Chewy.strategy :atomic do
-                      Tantot.logger.debug "[Tantot] [Chewy] [update_index] #{reference}: #{backreference.count} objects"
+                    ::Chewy.strategy Tantot.config.chewy_strategy do
+                      Tantot.logger.debug "[Tantot] [Chewy] [update_index] #{reference} (#{backreference.count} objects): #{backreference.inspect}"
                       ::Chewy.derive_type(reference).update_index(backreference, options)
                     end
                   end
