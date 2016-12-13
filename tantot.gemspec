@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'tantot/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "Tantot"
+  spec.name          = "tantot"
   spec.version       = Tantot::VERSION
   spec.authors       = ["François-Pierre Bouchard"]
   spec.email         = ["fpbouchard@gmail.com"]
