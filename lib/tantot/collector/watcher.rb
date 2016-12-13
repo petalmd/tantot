@@ -1,9 +1,7 @@
 module Tantot
   module Collector
-    class Watcher
-      def self.manages?(context)
-        context.key?(:watcher)
-      end
+    class Watcher < Base
+      self.context_key = :watcher
 
       def initialize
         @stash = Hash.new do |watcher_hash, watcher|
@@ -16,30 +14,7 @@ module Tantot
       end
 
       def register_watch(context, block)
-        # nop
-      end
-
-      def push(context, instance, mutations)
-        watcher = context[:watcher]
-        model = context[:model]
-        formatter = Tantot::Formatter.resolve(watcher.watcher_options[:format]).new
-        attribute_hash = @stash[watcher][model][instance.id]
-        mutations.each do |attr, changes|
-          attribute_hash[attr] = formatter.push(attribute_hash[attr], context, changes)
-        end
-      end
-
-      def sweep(performer, context = {})
-        watcher = context[:watcher]
-        filtered_stash = watcher ? @stash.select {|w, _c| w == watcher} : @stash
-        filtered_stash.each do |w, changes_by_model|
-          performer.run({watcher: w}, changes_by_model)
-        end
-        if watcher
-          @stash.delete(watcher)
-        else
-          @stash.clear
-        end
+        Tantot.registry.watch_config[context[:watcher]] = {context: context}
       end
 
       def perform(context, changes_by_model)
@@ -64,22 +39,27 @@ module Tantot
       end
 
       def debug_context(context)
-        context[:watcher].name.demodulize
+        context[:watcher].name
       end
 
-      def debug_state(context)
-        return false if @stash.empty?
-        @stash.collect do |watcher, changes_by_model|
-          "#{watcher.name}[#{changes_by_model.collect do |model, changes_by_id|
-            "#{model.name}*#{changes_by_id.size}"
-          end.join("&")}]"
-        end.flatten.join(" / ")
+      def debug_changes(watcher, changes_by_model)
+        "#{watcher.name}(#{changes_by_model.collect {|model, changes_by_id| debug_changes_for_model(model, changes_by_id)}.join(" & ")})"
+      end
+
+      def debug_state(stash = @stash)
+        stash.collect {|watcher, changes_by_model| debug_changes(watcher, changes_by_model)}.flatten.join(" / ")
       end
 
       def debug_perform(context, changes_by_model)
-        "#{context[:watcher].name}[#{changes_by_model.collect do |model, changes_by_id|
-          "#{model.name}*#{changes_by_id.size}"
-        end.join("&")}]"
+        debug_changes(context[:watcher], changes_by_model)
+      end
+
+    protected
+
+      def get_stash(context, instance)
+        watcher = context[:watcher]
+        model = context[:model]
+        @stash[watcher][model][instance.id]
       end
 
     end

@@ -2,6 +2,13 @@ require 'tantot/performer/bypass'
 require 'tantot/performer/inline'
 
 begin
+  require 'chewy'
+  require 'tantot/performer/chewy'
+rescue LoadError
+  nil
+end
+
+begin
   require 'sidekiq'
   require 'tantot/performer/sidekiq'
 rescue LoadError

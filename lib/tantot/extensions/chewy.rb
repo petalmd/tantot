@@ -26,6 +26,8 @@ module Tantot
       class ChewyWatcher
         include Tantot::Watcher
 
+        watcher_options performer: :chewy
+
         def perform(changes_by_model)
           changes_by_model.each do |model, changes_by_id|
             model_watches = model._tantot_chewy_callbacks
@@ -70,11 +72,8 @@ module Tantot
 
                   # Make sure there are any backreferences
                   if backreference.any?
-                    # Call update_index, will follow normal chewy strategy
-                    ::Chewy.strategy Tantot.config.chewy_strategy do
-                      Tantot.logger.debug { "[Tantot] [Chewy] [update_index] #{reference} (#{backreference.count} objects): #{backreference.inspect}" }
-                      ::Chewy.derive_type(reference).update_index(backreference, options)
-                    end
+                    Tantot.logger.debug { "[Tantot] [Chewy] [update_index] #{reference} (#{backreference.count} objects): #{backreference.inspect}" }
+                    ::Chewy.derive_type(reference).update_index(backreference, options)
                   end
                 end
 

@@ -61,7 +61,10 @@ module Tantot
             options: options
           }
 
-          context[:watcher] = watcher if watcher
+          if watcher
+            context[:watcher] = watcher
+            options.reverse_merge!(watcher.watcher_options)
+          end
           context[:block_id] = CityHash.hash64(block.source_location.collect(&:to_s).join) if block_given?
 
           Tantot.collector.register_watch(context, block)

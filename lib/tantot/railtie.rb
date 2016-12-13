@@ -12,7 +12,7 @@ module Tantot
 
     console do |app|
       # Will sweep after every push (unfortunately)
-      Tantot.config.console_mode = true
+      Tantot.config.sweep_on_push = true
     end
 
     initializer 'tantot.request_strategy' do |app|

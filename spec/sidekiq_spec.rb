@@ -31,7 +31,13 @@ if defined?(::Sidekiq)
           City.create name: 'foo'
         end
         expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
-        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{"watcher" => "SidekiqWatcher", "collector_class" => "Tantot::Collector::Watcher"}, {"City" => {"1" => {"name" => [nil, 'foo']}}}])
+        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{
+          "model" => "City",
+          "attributes" => ["name"],
+          "options" => {},
+          "watcher" => "SidekiqWatcher",
+          "collector_class" => "Tantot::Collector::Watcher"},
+          {"City" => {"1" => {"name" => [nil, 'foo']}}}])
       end
 
       it "should call the watcher" do
@@ -49,7 +55,7 @@ if defined?(::Sidekiq)
             # Create a model, then sweep. It should have called perform wihtout triggering a sidekiq worker
             city = City.create name: 'foo'
             expect_any_instance_of(SidekiqWatcher).to receive(:perform).with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
-            Tantot.collector.sweep(performer: :inline, watcher: SidekiqWatcher)
+            Tantot.collector.sweep(:inline)
             expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(0)
 
             # Further modifications should trigger through sidekiq when exiting the strategy block
@@ -57,7 +63,13 @@ if defined?(::Sidekiq)
             city.save
           end
           expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
-          expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{"watcher" => "SidekiqWatcher", "collector_class" => "Tantot::Collector::Watcher"}, {"City" => {"1" => {"name" => ['foo', 'bar']}}}])
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{
+            "model" => "City",
+            "attributes" => ["name"],
+            "options" => {},
+            "watcher" => "SidekiqWatcher",
+            "collector_class" => "Tantot::Collector::Watcher"},
+            {"City" => {"1" => {"name" => ['foo', 'bar']}}}])
         end
       end
     end
@@ -81,7 +93,13 @@ if defined?(::Sidekiq)
         end
         expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
         block_id = Tantot.registry.watch_config.keys.last
-        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{"block_id" => block_id, "collector_class" => "Tantot::Collector::Block"}, {"1" => {"name" => [nil, 'foo']}}])
+        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{
+          "model" => "City",
+          "attributes" => ["name"],
+          "options" => {},
+          "block_id" => block_id,
+          "collector_class" => "Tantot::Collector::Block"},
+          {"1" => {"name" => [nil, 'foo']}}])
       end
 
       it "should call the watcher" do

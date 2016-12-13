@@ -4,3 +4,4 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'sidekiq', require: false
+gem 'chewy', require: false

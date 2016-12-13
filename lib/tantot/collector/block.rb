@@ -1,9 +1,7 @@
 module Tantot
   module Collector
-    class Block
-      def self.manages?(context)
-        context.key?(:block_id)
-      end
+    class Block < Base
+      self.context_key = :block_id
 
       def initialize
         @stash = Hash.new do |block_id_hash, block_id|
@@ -15,22 +13,6 @@ module Tantot
 
       def register_watch(context, block)
         Tantot.registry.watch_config[context[:block_id]] = {context: context, block: block}
-      end
-
-      def push(context, instance, mutations)
-        options = context.fetch(:options, {})
-        formatter = Tantot::Formatter.resolve(options[:format] || Tantot.config.default_watcher_options[:format]).new
-        attribute_hash = @stash[context[:block_id]][instance.id]
-        mutations.each do |attr, changes|
-          attribute_hash[attr] = formatter.push(attribute_hash[attr], context, changes)
-        end
-      end
-
-      def sweep(performer, context = {})
-        @stash.each do |block_id, changes|
-          performer.run({block_id: block_id}, changes)
-        end
-        @stash.clear
       end
 
       def perform(context, changes_by_id)
@@ -60,17 +42,26 @@ module Tantot
         debug_block(block)
       end
 
-      def debug_state(context)
-        return false if @stash.empty?
-        @stash.collect do |block_id, changes_by_id|
+      def debug_changes(watch_config, changes_by_id)
+        "#{debug_changes_for_model(watch_config[:context][:model], changes_by_id)} for #{debug_block(watch_config[:block])}"
+      end
+
+      def debug_state(stash = @stash)
+        stash.collect do |block_id, changes_by_id|
           watch_config = Tantot.registry.watch_config[block_id]
-          "#{watch_config[:context][:model].name}*#{changes_by_id.size} for #{debug_block(watch_config[:block])}"
+          debug_changes(watch_config, changes_by_id)
         end.join(" / ")
       end
 
       def debug_perform(context, changes_by_id)
         watch_config = Tantot.registry.watch_config[context[:block_id]]
-        "#{watch_config[:context][:model].name}*#{changes_by_id.size} for #{debug_block(watch_config[:block])}"
+        debug_changes(watch_config, changes_by_id)
+      end
+
+    protected
+
+      def get_stash(context, instance)
+        @stash[context[:block_id]][instance.id]
       end
 
     end

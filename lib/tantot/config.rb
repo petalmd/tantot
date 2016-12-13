@@ -2,16 +2,13 @@ module Tantot
   class Config
     include Singleton
 
-    attr_accessor :performer, :use_after_commit_callbacks, :default_watcher_options, :console_mode, :chewy_strategy
+    attr_accessor :performer, :format, :use_after_commit_callbacks, :sweep_on_push
 
     def initialize
       @performer = :inline
+      @format = :compact
       @use_after_commit_callbacks = true
-      @default_watcher_options = {
-        format: :compact
-      }
-      @console_mode = false
-      @chewy_strategy = :atomic
+      @sweep_on_push = false
     end
   end
 end
