@@ -4,14 +4,14 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'tantot/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "tantot"
+  spec.name          = "Tantot"
   spec.version       = Tantot::VERSION
   spec.authors       = ["François-Pierre Bouchard"]
   spec.email         = ["fpbouchard@gmail.com"]
 
-  spec.summary       = %q{Allows to perform batched operations on model updates}
-  spec.description   = %q{}
-  spec.homepage      = "https://github.com/petalmd"
+  spec.summary       = %q{Delayed, grouped and compact ActiveRecord callbacks}
+  spec.description   = %q{Centralize and delay changes to multiple ActiveRecord models to offload processing of complex calculations caused by model mutations.}
+  spec.homepage      = "https://github.com/petalmd/tantot"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($RS)
