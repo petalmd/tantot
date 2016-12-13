@@ -10,8 +10,12 @@ describe Tantot::Changes do
       expect(subject.ids).to eq([1, 2, 3])
     end
 
-    it "should find all values for an attribute" do
-      expect(subject.for_attribute(:name)).to eq([nil, "foo", "bar", "baz"])
+    it "should find all values for an attribute, removing nil by default" do
+      expect(subject.for_attribute(:name)).to eq(["foo", "bar", "baz"])
+    end
+
+    it "should find all values for an attribute, including nil" do
+      expect(subject.for_attribute(:name, false)).to eq([nil, "foo", "bar", "baz"])
     end
 
     it "should find all changed attributes" do

@@ -95,7 +95,7 @@ describe Tantot::Extensions::Chewy do
 
     stub_model(:city) do
       watch_index 'foo' do |changes|
-        changes.keys
+        changes.ids
       end
     end
 

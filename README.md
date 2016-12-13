@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/petalmd/tantot.svg?branch=master)](https://travis-ci.org/petalmd/tantot)
 
+Tantot (french for _shortly_/_soon_)
+
 Centralize and delay changes to multiple ActiveRecord models to offload processing of complex calculations caused by model mutations.
 
 ## Installation
@@ -22,7 +24,9 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Tantot introduces new ActiveRecord callbacks that abstracts most of the usual boilerplate when managing changes, and also allows running callbacks in Sidekiq.
+
+_More documentation to come!_
 
 ## Development
 
@@ -32,7 +36,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/tantot. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/petalmd/tantot. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 
 ## License

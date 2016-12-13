@@ -16,8 +16,9 @@ module Tantot
         other.changes_by_id == @changes_by_id
       end
 
-      def for_attribute(attribute)
-        @changes_by_id.values.collect {|changes_by_attribute| changes_by_attribute[attribute.to_s]}.flatten.uniq
+      def for_attribute(attribute, compact = true)
+        changes = @changes_by_id.values.collect {|changes_by_attribute| changes_by_attribute[attribute.to_s]}.flatten.uniq
+        compact ? changes.compact : changes
       end
 
       def ids
