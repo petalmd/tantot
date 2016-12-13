@@ -135,6 +135,20 @@ if defined?(::Chewy)
         City.create!
       end
     end
+
+    if defined?(::Sidekiq)
+      context "using Sidekiq" do
+        require 'sidekiq/testing'
+
+        around do |example|
+          Sidekiq::Worker.clear_all
+          Tantot.config.performer = :sidekiq
+          example.run
+          Tantot.config.performer = :inline
+        end
+      end
+    end
+
   end
 
 end

@@ -6,7 +6,7 @@ module Tantot
 
         def perform(context, changes)
           context, changes = Tantot.collector.unmarshal(context, changes)
-          ::Chewy.strategy(Tantot.config.chewy_strategy) do
+          ::Chewy.strategy(context[:chewy_strategy]) do
             Tantot.collector.perform(context, changes)
           end
         end
@@ -17,7 +17,7 @@ module Tantot
         when :atomic, :urgent
           Tantot::Performer::Inline.new.run(context, changes)
         when /sidekiq/
-          context, changes = Tantot.collector.marshal(context, changes)
+          context, changes = Tantot.collector.marshal(context.merge({chewy_strategy: ::Chewy.strategy.current.name}), changes)
           Tantot::Performer::Chewy::Worker.perform_async(context, changes)
         when :bypass
           return
