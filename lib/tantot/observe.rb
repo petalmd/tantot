@@ -69,9 +69,10 @@ module Tantot
 
           Tantot.collector.register_watch(context, block)
 
-          callback_options = {
-            if: Observe.condition_proc(context)
-          }
+          callback_options = {}.tap do |opts|
+            opts[:if] = Observe.condition_proc(context) if context[:attributes].any? || options.key?(:if)
+            opts[:on] = options[:on] if options.key?(:on)
+          end
           update_proc = Observe.update_proc(context)
 
           if Tantot.config.use_after_commit_callbacks

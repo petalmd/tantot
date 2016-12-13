@@ -295,5 +295,83 @@ describe Tantot do
         expect(changes[:obj]).to eq(Tantot::Changes::ById.new({1=>{"id"=>[nil, 1]}, 2=>{"id"=>[nil, 2]}, 3=>{"id"=>[nil, 3]}}))
       end
     end
+
+    context 'on:' do
+
+      context ':create' do
+        before do
+          stub_model(:city) do
+            watch TestWatcher, on: :create
+          end
+        end
+
+        it "should only watch creation" do
+          city = nil
+          Tantot.collector.run do
+            city = City.create!
+            expect(watcher_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {"id" => [nil, city.id]}}}))
+          end
+          Tantot.collector.run do
+            city = City.find(city)
+            city.name = 'foo'
+            city.save
+          end
+          Tantot.collector.run do
+            city = City.find(city)
+            city.destroy
+          end
+        end
+      end
+
+      context ':update' do
+        before do
+          stub_model(:city) do
+            watch TestWatcher, on: :update
+          end
+        end
+
+        it "should only watch update" do
+          city = nil
+          Tantot.collector.run do
+            city = City.create!
+            expect(watcher_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {"name" => [nil, 'foo']}}}))
+          end
+          Tantot.collector.run do
+            city = City.find(city)
+            city.name = 'foo'
+            city.save
+          end
+          Tantot.collector.run do
+            city = City.find(city)
+            city.destroy
+          end
+        end
+      end
+
+      context ':destroy' do
+        before do
+          stub_model(:city) do
+            watch TestWatcher, on: :destroy
+          end
+        end
+
+        it "should only watch destruction" do
+          city = nil
+          Tantot.collector.run do
+            city = City.create!
+            expect(watcher_instance).to receive(:perform).once.with(Tantot::Changes::ByModel.new({City => {city.id => {}}}))
+          end
+          Tantot.collector.run do
+            city = City.find(city)
+            city.name = 'foo'
+            city.save
+          end
+          Tantot.collector.run do
+            city = City.find(city)
+            city.destroy
+          end
+        end
+      end
+    end
   end # describe '.watch'
 end
