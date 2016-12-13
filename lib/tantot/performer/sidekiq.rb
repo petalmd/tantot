@@ -11,8 +11,10 @@ module Tantot
       end
 
       def run(context, changes)
-        context, changes = Tantot.collector.marshal(context, changes)
-        Tantot::Performer::Sidekiq::Worker.perform_async(context, changes)
+        queue = context[:options][:queue] || Tantot.config.sidekiq_queue
+        ::Sidekiq::Client.push('class' => Tantot::Performer::Sidekiq::Worker,
+          'args' => Tantot.collector.marshal(context, changes),
+          'queue' => queue)
       end
     end
   end

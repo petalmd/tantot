@@ -31,6 +31,7 @@ if defined?(::Sidekiq)
           City.create name: 'foo'
         end
         expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
+        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["queue"]).to eq('default')
         expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{
           "model" => "City",
           "attributes" => ["name"],
@@ -63,6 +64,7 @@ if defined?(::Sidekiq)
             city.save
           end
           expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.first["queue"]).to eq('default')
           expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{
             "model" => "City",
             "attributes" => ["name"],
@@ -70,6 +72,55 @@ if defined?(::Sidekiq)
             "watcher" => "SidekiqWatcher",
             "collector_class" => "Tantot::Collector::Watcher"},
             {"City" => {"1" => {"name" => ['foo', 'bar']}}}])
+        end
+      end
+    end
+
+    describe Tantot::Performer::Sidekiq do
+      context "with a specific queue on a watcher" do
+        before do
+          class SidekiqWatcher
+            include Tantot::Watcher
+
+            watcher_options queue: :foo
+
+            def perform(changes)
+            end
+          end
+
+          Sidekiq::Worker.clear_all
+          stub_model(:city) do
+            watch SidekiqWatcher, :name
+          end
+        end
+
+        it "should set the sidekiq queue accordingly" do
+          Tantot.collector.run do
+            City.create name: 'foo'
+          end
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.first["queue"]).to eq('foo')
+        end
+      end
+
+      context "with a specific queue on a block" do
+        before do
+          Sidekiq::Worker.clear_all
+          stub_model(:city) do
+            watch(:name, queue: :foo) {|changes| }
+          end
+        end
+
+        it "should set the sidekiq queue accordingly" do
+          class SidekiqWatcher
+            watcher_options queue: :foo
+          end
+
+          Tantot.collector.run do
+            City.create name: 'foo'
+          end
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
+          expect(Tantot::Performer::Sidekiq::Worker.jobs.first["queue"]).to eq('foo')
         end
       end
     end
@@ -93,6 +144,7 @@ if defined?(::Sidekiq)
         end
         expect(Tantot::Performer::Sidekiq::Worker.jobs.size).to eq(1)
         block_id = Tantot.registry.watch_config.keys.last
+        expect(Tantot::Performer::Sidekiq::Worker.jobs.first["queue"]).to eq('default')
         expect(Tantot::Performer::Sidekiq::Worker.jobs.first["args"]).to eq([{
           "model" => "City",
           "attributes" => ["name"],
