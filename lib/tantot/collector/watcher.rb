@@ -1,6 +1,6 @@
 module Tantot
   module Collector
-    class Watcher < Base
+    class Watcher
       def self.manages?(context)
         context.key?(:watcher)
       end

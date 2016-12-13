@@ -1,6 +1,7 @@
-require 'tantot/collector/base'
 require 'tantot/collector/watcher'
 require 'tantot/collector/block'
+
+COLLECTOR_CLASSES = [Tantot::Collector::Block, Tantot::Collector::Watcher]
 
 module Tantot
   module Collector
@@ -62,7 +63,7 @@ module Tantot
       end
 
       def resolve(context)
-        collector_class = Tantot::Collector::Base.descendants.find {|c| c.manages?(context)}
+        collector_class = COLLECTOR_CLASSES.find {|c| c.manages?(context)}
         return nil unless collector_class
         @collectors[collector_class] || @collectors[collector_class] = collector_class.new
       end

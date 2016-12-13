@@ -1,6 +1,6 @@
 module Tantot
   module Collector
-    class Block < Base
+    class Block
       def self.manages?(context)
         context.key?(:block_id)
       end
