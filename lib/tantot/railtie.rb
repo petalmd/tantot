@@ -22,7 +22,7 @@ module Tantot
 
     config.to_prepare do
       Tantot.logger.debug { "[Tantot] Clearing registry" }
-      Tantot.registry.clear
+      Tantot.agent_registry.clear
     end
   end
 end
