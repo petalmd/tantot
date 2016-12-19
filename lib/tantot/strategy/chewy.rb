@@ -10,7 +10,7 @@ module Tantot
 
           ::Chewy.strategy(chewy_strategy) do
             agent.peform(Tantot::Strategy::Sidekiq.unmarshal(changes_by_model))
-            Tantot.collector.perform(context, changes)
+            Tantot.manager.perform(context, changes)
           end
         end
       end

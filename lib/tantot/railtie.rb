@@ -6,7 +6,7 @@ module Tantot
       end
 
       def call(env)
-        Tantot.collector.run { @app.call(env) }
+        Tantot.manager.run { @app.call(env) }
       end
     end
 
