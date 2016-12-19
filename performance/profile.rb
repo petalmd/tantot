@@ -41,10 +41,12 @@ class BlockRun < ProfileRun
 
   def run
     RUNS.times do
-      city = BlockRunCity.create! name: 'foo'
-      city.name = 'bar'
-      city.save
-      city.destroy
+      Tantot.manager.run do
+        city = BlockRunCity.create! name: 'foo'
+        city.name = 'bar'
+        city.save
+        city.destroy
+      end
     end
   end
 end
@@ -71,10 +73,12 @@ class WatcherRun < ProfileRun
 
   def run
     RUNS.times do
-      city = WatcherRunCity.create! name: 'foo'
-      city.name = 'bar'
-      city.save
-      city.destroy
+      Tantot.manager.run do
+        city = WatcherRunCity.create! name: 'foo'
+        city.name = 'bar'
+        city.save
+        city.destroy
+      end
     end
   end
 

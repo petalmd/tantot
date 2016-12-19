@@ -8,7 +8,6 @@ module Tantot
       end
 
       def register(watch)
-        puts 'register'
         agent_class, watch_id = Tantot::Agent.resolve!(watch)
         agent = @agents.fetch(watch_id.to_s) do
           agent_class.new(watch_id).tap {|new_agent| @agents[watch_id.to_s] = new_agent}
