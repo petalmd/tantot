@@ -39,8 +39,8 @@ module Tantot
       def self.register_watch(model, type_name, options, block)
         method = options.delete(:method)
         model._tantot_chewy_callbacks ||= {}
-        raise MultipleWatchesProhibited.new("Cannot register an index watch on the same type more than once: #{type_name}") if model._tantot_chewy_callbacks.key?(type_name)
-        model._tantot_chewy_callbacks[type_name] = [method, options, block]
+        model._tantot_chewy_callbacks[type_name] ||= []
+        model._tantot_chewy_callbacks[type_name] << [method, options, block]
       end
 
       class ChewyWatcher
@@ -51,14 +51,12 @@ module Tantot
         def perform(changes_by_model)
           changes_by_model.each do |model, changes_by_id|
             model_watches = model._tantot_chewy_callbacks
-            model_watches.each do |type_name, (method, options, block)|
+            model_watches.each do |type_name, watches|
               # Find type
               reference = get_chewy_type(type_name)
-              backreference = get_ids_to_update(model, changes_by_id, method, options, block)
 
+              backreference = watches.flat_map {|method, options, block| get_ids_to_update(model, changes_by_id, method, options, block)}.compact
               if backreference
-                backreference.compact!
-
                 # Make sure there are any backreferences
                 if backreference.any?
                   Tantot.logger.debug { "[Tantot] [Chewy] [update_index] #{reference} (#{backreference.count} objects): #{backreference.inspect}" }
