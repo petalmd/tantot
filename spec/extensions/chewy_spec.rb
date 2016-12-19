@@ -4,6 +4,15 @@ if defined?(::Chewy)
 
   describe Tantot::Extensions::Chewy do
 
+    context "validations" do
+      it "should prevent registering on the same type more than once" do
+        stub_model(:city) do
+          watch_index 'foo'
+        end
+        expect { City.watch_index 'foo' }.to raise_error(Tantot::MultipleWatchesProhibited, /same type more than once/)
+      end
+    end
+
     [nil, :self, :class_method, :block].product([:some, :all]).each do |backreference_opt, attribute_opt|
       context "should update indexes using backreference: #{backreference_opt.inspect}, attributes: #{attribute_opt}" do
         let(:chewy_type) { double }

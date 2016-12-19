@@ -10,8 +10,8 @@ module Tantot
 
     def self.resolve!(watch)
       agent_classes = AGENT_CLASSES.collect {|klass| [klass, klass.identify(watch)]}.reject {|_klass, id| id.nil?}
-      raise UnresolvableAgent("Can't resolve agent for watch: #{watch.inspect}") unless agent_classes.any?
-      raise UnresolvableAgent("More than one agent manages watch: #{watch.inspect}") if agent_classes.many?
+      raise Tantot::UnresolvableAgent.new("Can't resolve agent for watch: #{watch.inspect}. Specify either a watcher class or define a block.") unless agent_classes.any?
+      raise Tantot::UnresolvableAgent.new("More than one agent manages watch: #{watch.inspect}") if agent_classes.many?
       agent_classes.first
     end
 

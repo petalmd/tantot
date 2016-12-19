@@ -9,8 +9,7 @@ module Tantot
           raise AgentNotFound.new("No registered agent with id #{id}") unless agent
 
           ::Chewy.strategy(chewy_strategy) do
-            agent.peform(Tantot::Strategy::Sidekiq.unmarshal(changes_by_model))
-            Tantot.manager.perform(context, changes)
+            agent.perform(Tantot::Strategy::Sidekiq.unmarshal(changes_by_model))
           end
         end
       end

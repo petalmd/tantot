@@ -1,7 +1,7 @@
 module Tantot
   module Strategy
     class Bypass
-      def run(id, changes_by_model)
+      def run(agent, changes_by_model)
         # nop
       end
     end

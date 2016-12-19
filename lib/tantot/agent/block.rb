@@ -1,12 +1,18 @@
+require 'cityhash'
+
 module Tantot
   module Agent
     class Block < Base
       def self.identify(watch)
         if watch.block.present?
-          "#{watch.model.to_s}|#{watch.options.inspect}"
+          CityHash.hash64("#{watch.model.to_s}|#{watch.attributes.inspect}|#{watch.options.inspect}")
         else
           nil
         end
+      end
+
+      def setup_watch(watch)
+        raise Tantot::MultipleWatchesProhibited.new("Can't have multiple block watches per model with the same attributes and options: #{debug_block(watch.block)}") if @watches.any?
       end
 
       def perform(changes_by_model)

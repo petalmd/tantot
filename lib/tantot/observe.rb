@@ -57,7 +57,10 @@ module Tantot
           # it if it is a string or class
           watcher = args.first.is_a?(String) || args.first.is_a?(Class) ? args.shift : nil
 
-          only_attributes = Array.wrap(options.fetch(:only, [])).collect(&:to_s)
+          raise ArgumentError.new("Only symbols are allowed as attribute filters") unless args.all? {|arg| arg.is_a?(Symbol)}
+          raise ArgumentError.new("Only one of arguments or :only option are valid attribute filters") if args.any? && options.key?(:only)
+
+          only_attributes = Array.wrap(options.fetch(:only, args)).collect(&:to_s)
           always_attributes = Array.wrap(options.fetch(:always, [])).collect(&:to_s)
 
           # Setup watch
@@ -72,7 +75,7 @@ module Tantot
           watch.block = block
           watch.watcher = watcher
 
-          Tantot.agent_registry.register(watch)
+          agent = Tantot.agent_registry.register(watch)
 
           # Setup and register callbacks
           callback_options = {}.tap do |opts|
@@ -86,6 +89,8 @@ module Tantot
             after_save(callback_options, &update_proc)
             after_destroy(callback_options, &update_proc)
           end
+
+          agent
         end
       end
     end

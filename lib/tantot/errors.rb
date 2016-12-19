@@ -7,4 +7,7 @@ module Tantot
 
   class AgentNotFound < StandardError
   end
+
+  class MultipleWatchesProhibited < StandardError
+  end
 end
