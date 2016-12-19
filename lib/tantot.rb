@@ -6,12 +6,10 @@ require 'singleton'
 
 require 'tantot/errors'
 require 'tantot/config'
-require 'tantot/registry'
 require 'tantot/changes'
-require 'tantot/watcher'
-require 'tantot/performer'
-require 'tantot/formatter'
-require 'tantot/collector'
+require 'tantot/agent'
+require 'tantot/strategy'
+require 'tantot/manager'
 require 'tantot/observe'
 
 require 'tantot/extensions/chewy'
@@ -28,30 +26,16 @@ module Tantot
   class << self
     attr_writer :logger
 
-    def derive_watcher(name)
-      watcher =
-        if name.is_a?(Class)
-          name
-        else
-          class_name = "#{name.camelize}Watcher"
-          watcher = class_name.safe_constantize
-          raise Tantot::UnderivableWatcher, "Can not find watcher named `#{class_name}`" unless watcher
-          watcher
-        end
-      raise Tantot::UnderivableWatcher, "Watcher class does not include Tantot::Watcher: #{watcher}" unless watcher.included_modules.include?(Tantot::Watcher)
-      watcher
-    end
-
-    def collector
-      Thread.current[:tantot_collector] ||= Tantot::Collector::Manager.new
+    def manager
+      Thread.current[:tantot_manager] ||= Tantot::Manager.new
     end
 
     def config
       Tantot::Config.instance
     end
 
-    def registry
-      Tantot::Registry.instance
+    def agent_registry
+      Tantot::Agent::Registry.instance
     end
 
     def logger

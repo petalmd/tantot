@@ -5,7 +5,7 @@ if defined?(::Grape)
 
       class GrapeMiddleware < Grape::Middleware::Base
         def call!(env)
-          Tantot.collector.run do
+          Tantot.manager.run do
             @app_response = super(env)
           end
         end

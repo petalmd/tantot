@@ -1,32 +1,37 @@
-require 'cityhash'
+require 'ostruct'
 
 module Tantot
   module Observe
     module Helpers
-      def condition_proc(context)
-        attributes = context[:attributes]
-        options = context[:options]
+      def condition_proc(watch)
+        attributes = watch.attributes
+        options = watch.options
         proc do
-          has_changes = attributes.any? ? (self.destroyed? || (self._watch_changes.keys & attributes).any?) : true
+          has_changes = attributes[:only].any? ? (self.destroyed? || (self._watch_changes.keys & attributes[:watched]).any?) : true
           has_changes && (!options.key?(:if) || self.instance_exec(&options[:if]))
         end
       end
 
-      def update_proc(context)
+      def update_proc(watch)
         proc do
-          attributes = context[:attributes]
+          attributes = watch.attributes
           watched_changes =
-            if attributes.any?
+            if attributes[:only].any?
               if self.destroyed?
-                attributes.each.with_object({}) {|attr, hash| hash[attr] = [self[attr]]}
+                attributes[:watched].each.with_object({}) {|attr, hash| hash[attr] = [self.attributes[attr]]}
               else
-                self._watch_changes.slice(*attributes)
+                self._watch_changes.slice(*attributes[:watched])
               end
             else
               self._watch_changes
             end
 
-          Tantot.collector.push(context, self, watched_changes)
+          # If explicitly watching attributes, always include their values (if not already included through change tracking)
+          attributes[:always].each do |attribute|
+            watched_changes[attribute] = [self.attributes[attribute]] unless watched_changes.key?(attribute)
+          end
+
+          watch.agent.push(watch, self, watched_changes)
         end
       end
     end
@@ -48,33 +53,33 @@ module Tantot
         def watch(*args, &block)
           options = args.extract_options!
 
-          watcher = args.first.is_a?(String) || args.first.is_a?(Class) ? Tantot.derive_watcher(args.shift) : nil
-          unless !!watcher ^ block_given?
-            raise ArgumentError.new("At least one, and only one of `watcher` or `block` can be passed")
-          end
+          # Syntax allows for the first argument to be a watcher class, shift
+          # it if it is a string or class
+          watcher = args.first.is_a?(String) || args.first.is_a?(Class) ? args.shift : nil
 
-          attributes = args.collect(&:to_s)
+          only_attributes = Array.wrap(options.fetch(:only, [])).collect(&:to_s)
+          always_attributes = Array.wrap(options.fetch(:always, [])).collect(&:to_s)
 
-          context = {
-            model: self,
-            attributes: attributes,
-            options: options
+          # Setup watch
+          watch = OpenStruct.new
+          watch.model = self
+          watch.attributes ={
+            only: only_attributes,
+            always: always_attributes,
+            watched: only_attributes | always_attributes
           }
+          watch.options = options
+          watch.block = block
+          watch.watcher = watcher
 
-          if watcher
-            context[:watcher] = watcher
-            options.reverse_merge!(watcher.watcher_options)
-          end
-          context[:block_id] = CityHash.hash64(block.source_location.collect(&:to_s).join) if block_given?
+          Tantot.agent_registry.register(watch)
 
-          Tantot.collector.register_watch(context, block)
-
+          # Setup and register callbacks
           callback_options = {}.tap do |opts|
-            opts[:if] = Observe.condition_proc(context) if context[:attributes].any? || options.key?(:if)
-            opts[:on] = options[:on] if options.key?(:on)
+            opts[:if] = Observe.condition_proc(watch) if watch.attributes[:only].any? || watch.options.key?(:if)
+            opts[:on] = watch.options[:on] if watch.options.key?(:on)
           end
-          update_proc = Observe.update_proc(context)
-
+          update_proc = Observe.update_proc(watch)
           if Tantot.config.use_after_commit_callbacks
             after_commit(callback_options, &update_proc)
           else

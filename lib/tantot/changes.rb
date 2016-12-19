@@ -17,8 +17,7 @@ module Tantot
       end
 
       def for_attribute(attribute, compact = true)
-        changes = @changes_by_id.values.collect {|changes_by_attribute| changes_by_attribute[attribute.to_s]}.flatten.uniq
-        compact ? changes.compact : changes
+        @changes_by_id.values.collect {|changes_by_attribute| changes_by_attribute[attribute.to_s]}.flatten.uniq.tap {|changes| changes.compact! if compact}
       end
 
       def ids
@@ -39,7 +38,7 @@ module Tantot
         @changes_by_model = changes_by_model
       end
 
-      delegate :==, :keys, :count, :size, to: :changes_by_model
+      delegate :==, :keys, :values, :count, :size, to: :changes_by_model
       alias_method :models, :keys
 
       def ==(other)

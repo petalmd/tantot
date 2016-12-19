@@ -1,7 +1,7 @@
 module Tantot
-  module Performer
+  module Strategy
     class Bypass
-      def run(context, changes)
+      def run(id, changes_by_model)
         # nop
       end
     end

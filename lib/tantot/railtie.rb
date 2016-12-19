@@ -19,5 +19,10 @@ module Tantot
       Tantot.logger.debug { "[Tantot] Installing Rails middleware" }
       app.config.middleware.insert_after(Rails::Rack::Logger, RequestStrategy)
     end
+
+    config.to_prepare do
+      Tantot.logger.debug { "[Tantot] Clearing registry" }
+      Tantot.registry.clear
+    end
   end
 end

@@ -29,16 +29,41 @@ ActiveRecord::Schema.define do
     t.column :name, :string
     t.column :rating, :integer
   end
+
+  create_table :streets do |t|
+    t.column :city_id, :integer
+    t.column :name, :string
+  end
+
+  create_table :users do |t|
+    t.column :username, :string
+  end
+
+  create_table :memberships do |t|
+    t.column :user_id, :integer
+    t.column :group_id, :integer
+    t.column :name, :string
+  end
+
+  create_table :groups do |t|
+    t.column :name, :string
+  end
+
+  create_table :colors do |t|
+    t.column :group_id, :integer
+    t.column :name, :string
+  end
 end
 
 RSpec.configure do |config|
   config.before(:suite) do
-    DatabaseCleaner.clean_with :transaction
-    DatabaseCleaner.strategy = :transaction
+    DatabaseCleaner.clean_with :truncation
+    DatabaseCleaner.strategy = :truncation
   end
 
   config.before do
     DatabaseCleaner.start
+    Tantot.agent_registry.clear
   end
 
   config.after do
