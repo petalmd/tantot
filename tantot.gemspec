@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'database_cleaner'
   spec.add_development_dependency 'stackprof'
 
-  spec.add_dependency 'activesupport', '>= 3.2'
-  spec.add_dependency 'activerecord', '>= 3.2'
+  spec.add_dependency 'activesupport', '~> 4.0'
+  spec.add_dependency 'activerecord', '~> 4.0'
   spec.add_dependency 'cityhash', '>= 0.8'
 end

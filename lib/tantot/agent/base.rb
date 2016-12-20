@@ -54,12 +54,16 @@ module Tantot
         end
       end
 
+      def perform(changes_by_model)
+        Tantot.logger.debug { "[Tantot] [Perform] [#{self.class.name.demodulize}] [#{debug_id}] [#{debug_stash}]"  }
+      end
+
       def debug_id
         raise NotImplementedError
       end
 
       def debug_stash
-        "#{@stash.collect {|model, changes_by_id| debug_changes_for_model(model, changes_by_id)}.join(" & ")})"
+        "#{@stash.collect {|model, changes_by_id| debug_changes_for_model(model, changes_by_id)}.join(" & ")}"
       end
 
       def debug_changes_for_model(model, changes_by_id)

@@ -5,6 +5,7 @@ if defined?(::Sidekiq)
 
   describe Tantot::Strategy::Sidekiq do
     around do |example|
+      Sidekiq::Worker.clear_all
       Tantot.config.strategy = :sidekiq
       example.run
       Tantot.config.strategy = :inline
@@ -19,7 +20,6 @@ if defined?(::Sidekiq)
       end
 
       before do
-        Sidekiq::Worker.clear_all
         stub_model(:city) do
           watch SidekiqWatcher, only: :name
         end
@@ -75,7 +75,6 @@ if defined?(::Sidekiq)
         end
 
         before do
-          Sidekiq::Worker.clear_all
           stub_model(:city) do
             watch SidekiqWatcherFooQueue, only: :name
           end
@@ -92,7 +91,6 @@ if defined?(::Sidekiq)
 
       context "with a specific queue on a block" do
         before do
-          Sidekiq::Worker.clear_all
           stub_model(:city) do
             watch(only: :name, queue: :foo) {|changes| }
           end
@@ -113,15 +111,12 @@ if defined?(::Sidekiq)
     end
 
     describe Tantot::Agent::Block do
-      let(:value) { {changed: false} }
       let(:changes) { {obj: nil} }
 
       before do
-        Sidekiq::Worker.clear_all
-        v = value
         c = changes
         stub_model(:city) do
-          watch(only: :name) {|changes| v[:changed] = true; c[:obj] = changes}
+          watch(only: :name) {|changes| c[:obj] = changes}
         end
       end
 
@@ -140,7 +135,6 @@ if defined?(::Sidekiq)
           Tantot.manager.run do
             city = City.create name: 'foo'
           end
-          expect(value[:changed]).to be_truthy
           expect(changes[:obj]).to eq(Tantot::Changes::ById.new({city.id => {"name" => [nil, 'foo']}}))
         end
       end

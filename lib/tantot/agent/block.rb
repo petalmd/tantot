@@ -16,6 +16,7 @@ module Tantot
       end
 
       def perform(changes_by_model)
+        super
         # Block agent always has only one watch
         block = watches.first.block
         model = watches.first.model

@@ -194,8 +194,8 @@ if defined?(::Chewy)
         end
       end
 
-      context "through" do
-        context "has_many through -> has_many -> belongs_to" do
+      context "has_many through" do
+        context "has_many -> belongs_to" do
           let(:chewy_type) { double }
           before do
             stub_model(:color) do
@@ -240,7 +240,7 @@ if defined?(::Chewy)
           end
         end
 
-        context "has_many through -> has_many -> has_many" do
+        context "has_many -> has_many" do
           let(:chewy_type) { double }
           before do
             stub_model(:street) do
@@ -278,7 +278,7 @@ if defined?(::Chewy)
           end
         end
 
-        context "has_many through -> belongs_to -> has_many" do
+        context "belongs_to -> has_many" do
           let(:chewy_type) { double }
           before do
             stub_model(:color) do
@@ -318,6 +318,53 @@ if defined?(::Chewy)
               expect(chewy_type).to receive(:update_index).with([222], {})
             end
           end
+        end
+
+        context "has_many through: nested" do
+          let(:chewy_type) { double }
+          before do
+            stub_model(:color) do
+              belongs_to :group
+            end
+
+            stub_model(:user) do
+              has_many :memberships
+              has_many :colors, through: :memberships, source: :colors
+
+              watch_index 'colors#color', association: :colors
+            end
+
+            stub_model(:group) do
+              has_many :memberships
+              has_many :colors
+            end
+
+            stub_model(:membership) do
+              belongs_to :group
+              belongs_to :user
+
+              has_many :colors, through: :group
+            end
+          end
+
+          it "updates accordingly" do
+            Tantot.manager.run do
+              group = Group.create! id: 111
+              group.colors.create! id: 222, name: 'red'
+              user = User.create id: 444
+              Membership.create id: 333, group: group, user: user
+              Tantot.manager.sweep(:bypass)
+              user.reload
+
+              user.username = "foo"
+              user.save
+
+              expect(Chewy).to receive(:derive_type).with('colors#color').and_return(chewy_type)
+              expect(chewy_type).to receive(:update_index).with([222], {})
+            end
+          end
+
+
         end
       end
     end

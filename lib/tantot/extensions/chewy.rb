@@ -111,18 +111,35 @@ module Tantot
             changes_by_id.for_attribute(reflection.foreign_key)
           when :has_one, :has_many
             if reflection.options[:through]
+              # It seems we can't perform this validation on watch registration
+              # since it is too soon (it would require setting the load order
+              # of the models)
+              #raise NotImplementedError.new("Nested has_many :through associations are not supported") if reflection.nested?
+
               through_query =
                 case reflection.through_reflection.macro
                 when :belongs_to
                   reflection.through_reflection.klass.where(reflection.through_reflection.klass.primary_key => changes_by_id.for_attribute(reflection.through_reflection.foreign_key))
                 when :has_many, :has_one
                   reflection.through_reflection.klass.where(reflection.through_reflection.foreign_key => changes_by_id.ids)
+                else
+                  raise NotImplementedError.new("has_many :through association of type #{reflection.through_reflection.macro} not yet supported")
                 end
-              case reflection.source_reflection.macro
-              when :belongs_to
-                through_query.pluck(reflection.source_reflection.foreign_key)
-              when :has_many
-                reflection.source_reflection.klass.where(reflection.source_reflection.foreign_key => (through_query.ids)).ids
+
+              if reflection.nested?
+                ids = []
+                through_query.find_each {|obj| ids |= obj.send(reflection.source_reflection_name).ids}
+                ids
+              else
+                # For simple has_many through (one level), we can walk down with a sub-select
+                case reflection.source_reflection.macro
+                when :belongs_to
+                  through_query.pluck(reflection.source_reflection.foreign_key)
+                when :has_many, :has_one
+                  reflection.source_reflection.klass.where(reflection.source_reflection.foreign_key => through_query.ids).ids
+                else
+                  raise NotImplementedError.new("has_many :through association of type #{reflection.source_reflection.macro} not yet supported")
+                end
               end
             else
               reflection.klass.where(reflection.foreign_key => changes_by_id.ids).ids

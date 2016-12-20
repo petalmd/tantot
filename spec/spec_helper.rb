@@ -15,6 +15,7 @@ def stub_model(name, superclass = nil, &block)
   stub_class(name, superclass || ActiveRecord::Base, &block)
 end
 
+ActiveRecord::Base.raise_in_transactional_callbacks = true
 ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
 
 ActiveRecord::Schema.define do
@@ -64,9 +65,11 @@ RSpec.configure do |config|
   config.before do
     DatabaseCleaner.start
     Tantot.agent_registry.clear
+    ActiveRecord::Base.logger = Logger.new(STDOUT)
   end
 
   config.after do
+    ActiveRecord::Base.logger = Logger.new(nil)
     DatabaseCleaner.clean
   end
 end

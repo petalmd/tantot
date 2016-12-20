@@ -35,6 +35,7 @@ module Tantot
       end
 
       def perform(changes_by_model)
+        super
         watcher.new.perform(Tantot::Changes::ByModel.new(changes_by_model))
       end
 
